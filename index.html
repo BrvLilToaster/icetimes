@@ -604,11 +604,11 @@ function detailsHTML(r, date) {
         ${fact(t("fNotes"), esc(r.notes))}
       </dl>
       <div class="btns">
-        <a class="btn primary" href="${gmaps(r, true)}" target="_blank" rel="noopener">${t("directions")}</a>
-        <a class="btn" href="${gmaps(r, false)}" target="_blank" rel="noopener">${t("openMaps")}</a>
-        ${r.priv && r.link ? `<a class="btn" href="${r.link}" target="_blank" rel="noopener">${esc(t("bookOnline"))}</a>` : link ? `<a class="btn" href="${link}" target="_blank" rel="noopener">${esc(t("citySched", r.city))}</a>` : ""}
+        <a class="btn primary" data-track="directions" href="${gmaps(r, true)}" target="_blank" rel="noopener">${t("directions")}</a>
+        <a class="btn" data-track="google_maps" href="${gmaps(r, false)}" target="_blank" rel="noopener">${t("openMaps")}</a>
+        ${r.priv && r.link ? `<a class="btn" data-track="book_online" href="${r.link}" target="_blank" rel="noopener">${esc(t("bookOnline"))}</a>` : link ? `<a class="btn" data-track="city_schedule" href="${link}" target="_blank" rel="noopener">${esc(t("citySched", r.city))}</a>` : ""}
       </div>
-      <a class="report" href="${reportMail(r, date)}">${t("reportLink")}</a>
+      <a class="report" data-track="report_problem" href="${reportMail(r, date)}">${t("reportLink")}</a>
       ${same.length > 1 ? `<div class="also"><h4>${esc(t("allAtRink", dateFmt(date, { weekday: "long" })))}</h4><ul>${same.map(x => `<li class="${x.id === r.id ? "cur" : ""}"><span>${fmt(x.start)}–${fmt(x.end)}</span><span>${esc(x.session)}</span></li>`).join("")}</ul></div>` : ""}
     </div>
     <figure class="map" style="margin:0">${mapSVG(r)}<figcaption>${esc(t("mapCap", mapCentre(r)[0]))} <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">${t("osm")}</a></figcaption></figure>
@@ -754,11 +754,11 @@ function chip(label, pressed, color) { const b = document.createElement("button"
 
 function buildTypeChips() {
   const box = $("typeChips"); box.innerHTML = "";
-  const all = chip(t("allTypes"), state.types.size === TYPES.length);
+  const all = chip(t("allTypes"), state.types.size === TYPES.length); all.dataset.type = "All types";
   all.onclick = () => { state.types = new Set(state.types.size === TYPES.length ? [] : TYPES.map(t => t[0])); typeChanged(); buildTypeChips(); render(); };
   box.append(all);
   for (const [t, c] of TYPES) {
-    const b = chip(typeLbl(t), state.types.has(t), c);
+    const b = chip(typeLbl(t), state.types.has(t), c); b.dataset.type = t;
     b.onclick = () => { if (state.types.size === TYPES.length) state.types = new Set([t]); else state.types.has(t) ? state.types.delete(t) : state.types.add(t); typeChanged(); buildTypeChips(); render(); };
     box.append(b);
   }
@@ -1023,9 +1023,9 @@ document.querySelectorAll("[data-layout]").forEach(b => b.onclick = () => { loca
 
 function buildDayChips() {
   const box = $("dayChips"); box.innerHTML = "";
-  const wk = chip(t("next7"), isBrowse());
+  const wk = chip(t("next7"), isBrowse()); wk.dataset.day = "next7";
   wk.onclick = () => { state.week = true; state.daySet = true; state.todayMode = false; state.date = isoToday(); syncControls(); render(); }; box.append(wk);
-  for (const [l, iso] of [[t("today"), isoToday()], [t("tomorrow"), tomorrowISO()]]) { const c = chip(l, !isBrowse() && state.date === iso);
+  for (const [l, iso, k] of [[t("today"), isoToday(), "today"], [t("tomorrow"), tomorrowISO(), "tomorrow"]]) { const c = chip(l, !isBrowse() && state.date === iso); c.dataset.day = k;
     c.onclick = () => { state.date = iso; state.week = false; state.daySet = true; state.todayMode = false; syncControls(); render(); }; box.append(c); }
 }
 
@@ -1067,7 +1067,7 @@ function buildFooter() {
   <section class="fb" aria-labelledby="fbH">
     <div><h2 id="fbH">${esc(t("fbTitle"))}</h2><p>${esc(t("fbText"))}</p></div>
     <div class="fb-act">
-      <a class="today-btn" href="${mailto(t("fbSubject"), t("fbBody"))}">${esc(t("fbBtn"))}</a>
+      <a class="today-btn" data-track="feedback_email" href="${mailto(t("fbSubject"), t("fbBody"))}">${esc(t("fbBtn"))}</a>
       <span class="fb-mail">${esc(t("fbOr"))} <b>${FEEDBACK_EMAIL}</b><button type="button" id="copyMail">${esc(t("copy"))}</button></span>
     </div>
   </section>
@@ -1108,6 +1108,51 @@ $("langBtn").onclick = () => {
   render();
 };
 applyLang();
+
+
+/* ---------- usage events for Google Analytics ----------
+   Pushed to Google Tag Manager's dataLayer as "ice_<action>" with four parameters.
+   On pages without Tag Manager (the Claude-hosted copies) there is no dataLayer and nothing is sent.
+   Nothing personal is sent: typed place names are only sent once they match a known city or neighbourhood. */
+function track(action, p = {}) {
+  try { if (Array.isArray(window.dataLayer)) window.dataLayer.push({ event: "ice_" + action, ice_type: "", ice_city: "", ice_rink: "", ice_label: "", ...p }); } catch {}
+}
+const typesLabel = () => state.types.size === TYPES.length ? "All types" : [...state.types].join(" | ");
+const timeLabel = () => fmt(state.from) + "–" + fmt(state.to);
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-track], #typeChips button, #dayChips button, #periodChips button, [data-g], #todayBtn, #weekBtn, #resetBtn, #modeNear, #modeCity, #langBtn, #copyMail, .ftoggle, .site-foot .cities a, .card");
+  if (!el) return;
+  const card = el.closest(".card"), r = card ? DATA[+card.dataset.id] : null;
+  const rp = r ? { ice_type: r.type, ice_city: r.city, ice_rink: r.rink } : {};
+  const wasOpen = card ? openId === +card.dataset.id : false;
+  // Handlers rebuild some controls, so read the new state just after they run.
+  setTimeout(() => {
+    if (el.dataset.track) return track(el.dataset.track, rp);
+    if (el.classList.contains("card")) { if (!wasOpen && openId === +el.dataset.id) track("session_open", rp); return; }
+    if (el.dataset.type) return track("filter_type", { ice_type: el.dataset.type, ice_label: typesLabel() });
+    if (el.dataset.day) return track(el.dataset.day === "next7" ? "next_7_days" : "filter_day", { ice_label: el.dataset.day === "next7" ? "day chips" : el.dataset.day });
+    if (el.id === "weekBtn") return track("next_7_days", { ice_label: "results button" });
+    if (el.closest("#periodChips")) return track("filter_time", { ice_label: timeLabel() });
+    if (el.dataset.g) return track("filter_gender", { ice_label: el.dataset.g });
+    if (el.id === "todayBtn") return track("open_ice_today");
+    if (el.id === "resetBtn") return track("reset_filters");
+    if (el.id === "modeNear" || el.id === "modeCity") return track("location_mode", { ice_label: el.id === "modeNear" ? "near a place" : "city" });
+    if (el.id === "langBtn") return track("language", { ice_label: document.documentElement.lang });
+    if (el.id === "copyMail") return track("feedback_copy");
+    if (el.classList.contains("ftoggle")) return track("filters_toggle", { ice_label: $("panel").classList.contains("collapsed") ? "closed" : "opened" });
+    if (el.closest(".cities")) return track("source_link", { ice_label: el.textContent.trim() });
+  });
+}, true);
+document.addEventListener("change", e => {
+  const id = e.target.id;
+  setTimeout(() => {
+    if (id === "city") track("filter_city", { ice_city: state.city });
+    else if (id === "origin" && matchPlace(e.target.value)) track("filter_place", { ice_city: state.origin, ice_label: state.radius + " km" });
+    else if (id === "radius") track("filter_radius", { ice_city: state.origin, ice_label: state.radius + " km" });
+    else if (id === "date") track("filter_day", { ice_label: "picked date" });
+    else if (id === "from" || id === "to") track("filter_time", { ice_label: timeLabel() });
+  });
+}, true);
 
 render();
 </script>
