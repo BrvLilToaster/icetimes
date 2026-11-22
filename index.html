@@ -571,7 +571,7 @@ function gmaps(r, dir) { const q = encodeURIComponent(r.rink + ", " + r.address 
 /* Google Maps embed (Maps Embed API, free). Only used where GMAPS_KEY is set (icetimes.ca); the key is
    restricted in Google Cloud to icetimes.ca, so it is safe to be visible in the page. Without a key the
    built-in OpenStreetMap image below is used. */
-const GMAPS_KEY = "";
+const GMAPS_KEY = "AIzaSyDFfOv8DRTV2ToJ7QlbSWuRLVh9PGGYDfU";
 function gmapEmbed(r) {
   const dest = encodeURIComponent(r.rink + ", " + r.address + (r.address.includes(r.city) ? "" : ", " + r.city) + ", BC");
   const lang = "&language=" + (LANG === "fr" ? "fr" : "en") + "&region=CA";
