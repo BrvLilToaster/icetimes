@@ -259,6 +259,8 @@ main.full .panel { display: none; }
 .map { align-self: start; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .map svg { display: block; width: 100%; height: auto; }
 .gmap iframe { display: block; width: 100%; aspect-ratio: 600 / 380; border: 0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gmap iframe { filter: invert(.9) hue-rotate(180deg) saturate(.85) brightness(.95); } }
+:root[data-theme="dark"] .gmap iframe { filter: invert(.9) hue-rotate(180deg) saturate(.85) brightness(.95); }
 .map figcaption a { color: var(--muted); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .osm { filter: invert(.92) hue-rotate(180deg) saturate(.7) brightness(.95); } }
 :root[data-theme="dark"] .osm { filter: invert(.92) hue-rotate(180deg) saturate(.7) brightness(.95); }
