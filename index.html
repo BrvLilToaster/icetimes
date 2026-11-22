@@ -124,6 +124,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .loc svg { width: 13px; height: 13px; fill: currentColor; vertical-align: -1px; margin-right: 4px; }
 .loc .ages { margin-left: 4px; }
 .loc .ages { color: var(--muted); font-weight: 400; font-size: 13px; }
+.busy { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.busy i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.busy-quiet { color: #1f7a4a; } .busy-moderate { color: #a86b00; } .busy-busy { color: #b42318; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .busy-quiet { color: #6fcf97; } :root:not([data-theme="light"]) .busy-moderate { color: #f2c46b; } :root:not([data-theme="light"]) .busy-busy { color: #f2827a; } }
 .pill { font: 600 11px/1 var(--font-body); text-transform: uppercase; letter-spacing: .6px; color: var(--c); }
 .meta { font-size: 13px; color: var(--muted); }
 .meta b { color: var(--ink); font-weight: 500; }
@@ -523,6 +527,19 @@ function genderOf(r) {
   return "all";
 }
 DATA.forEach((r, i) => { r.gender = genderOf(r); r.id = i; });
+/* How busy a session usually is. Only sessions with real information get a label.
+   level: quiet | moderate | busy. src: regulars (people who skate it) | counts (sign-up numbers over several weeks).
+   A rule matches by rink + type + days, and optionally a start-time window in minutes (before / after). */
+const BUSY = [
+  { rink: "South Surrey Arena", type: "Stick & Puck", days: ["Tue", "Fri"], before: 720, level: "quiet", src: "regulars" },
+];
+const busyCache = new Map();
+function busyOf(r) {
+  if (busyCache.has(r.id)) return busyCache.get(r.id);
+  const b = BUSY.find(x => x.rink === r.rink && (!x.type || x.type === r.type) && (!x.days || x.days.includes(r.day))
+    && (x.before == null || r.start < x.before) && (x.after == null || r.start >= x.after)) || null;
+  busyCache.set(r.id, b); return b;
+}
 let openId = null;
 const GENDER_TAG = new Proxy({}, { get: (_, k) => t("gTag")[k] });
 const GENDER_HINT = new Proxy({ any: 1, open: 1, women: 1 }, { get: (o, k) => k in o ? t("gHint")[k] : undefined });
@@ -616,6 +633,7 @@ function detailsHTML(r, date) {
         ${fact(t("fAddress"), esc(r.address))}
         ${fact(t("fCost"), esc(r.cost))}
         ${fact(t("fBooking"), esc(r.booking))}
+        ${busyOf(r) ? fact(t("fBusy"), esc(t("busy_" + busyOf(r).level) + " · " + (busyOf(r).note || t("busySrc_" + busyOf(r).src)))) : ""}
         ${fact(t("fNotes"), esc(r.notes))}
       </dl>
       <div class="btns">
@@ -653,7 +671,7 @@ const L = {
  en: {
   brandSr: "Open Ice Finder: Lower Mainland drop-in ice times", title: "Drop-in Hockey, Stick & Puck & Public Skating Times – Metro Vancouver | Open Ice Finder",
   disclaimer: `<b>Check the rink's website before you go.</b> <span class="dlong">These times are copied from city and rec-centre schedules, and sessions can be cancelled or changed at short notice (tournaments, holidays, maintenance). Use the link on each listing to confirm.</span><span class="dshort">Times can change at short notice.</span>`,
-  updated: d => `Last updated <b>${d}</b> · refreshed weekly`,
+  updated: d => `Last updated <b>Nov 15, 2026</b> · refreshed weekly`,
   filtersAria: "Search filters", todayBtn: "Show open ice today", lgType: "Type of ice time", lgGender: "Gender", gAny: "Any", gOpen: "Open to all", gWomen: "Women's",
   lgLoc: "Location", byCity: "By city", nearMe: "Near me", cityLbl: "City", originLbl: "Your city or neighbourhood", originPh: "Start typing, e.g. Vancouver",
   within: "Within", radiusHint: "Straight-line distance from the centre of the place you enter.", lgDay: "Day", lgTime: "Time of day", from: "From", to: "To", reset: "Reset filters",
@@ -677,6 +695,8 @@ const L = {
   few: (n, isToday, todayMode, wd) => `Only ${plural(n, "session", "sessions")} ${isToday ? (todayMode ? "left today" : "today") : "on " + wd} with these filters.`,
   todayDot: "Today · ", tomorrowDot: "Tomorrow · ", more: "Details & map", less: "Less", onNow: "On now", cancelled: "Cancelled on this date",
   fSession: "Session", fType: "Type", fFor: "For", fRink: "Rink", fAddress: "Address", fCost: "Cost", fBooking: "Booking", fNotes: "Notes",
+  fBusy: "How busy", busy_quiet: "Usually quiet", busy_moderate: "Moderate", busy_busy: "Often busy",
+  busySrc_regulars: "reported by regulars", busySrc_counts: "from sign-up counts",
   privTag: "Private rink · book online", bookOnline: "Book online",
   toTime: "to", directions: "Directions", openMaps: "Open in Google Maps", citySched: c => `${c} schedule`, allAtRink: d => `All ice at this rink on ${d}s`,
   mapCap: c => `Centred on ${c} · grey dots are other rinks · map ©`, osm: "OpenStreetMap contributors", mapAria: (c, r, d) => `Street map centred on ${c} showing ${r}, ${d} away`,
@@ -730,6 +750,8 @@ const L = {
   few: (n, isToday, todayMode, wd) => `Seulement ${plural(n, "séance", "séances")} ${isToday ? (todayMode ? (n === 1 ? "restante aujourd'hui" : "restantes aujourd'hui") : "aujourd'hui") : "le " + wd} avec ces filtres.`,
   todayDot: "Aujourd'hui · ", tomorrowDot: "Demain · ", more: "Détails et carte", less: "Moins", onNow: "En cours", cancelled: "Annulée à cette date",
   fSession: "Séance", fType: "Type", fFor: "Pour", fRink: "Patinoire", fAddress: "Adresse", fCost: "Coût", fBooking: "Réservation", fNotes: "Remarques",
+  fBusy: "Achalandage", busy_quiet: "Généralement calme", busy_moderate: "Modéré", busy_busy: "Souvent achalandé",
+  busySrc_regulars: "selon des habitués", busySrc_counts: "selon les inscriptions",
   privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne",
   toTime: "à", directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", citySched: c => `Horaire de ${c}`, allAtRink: d => `Toutes les séances à cette patinoire le ${d}`,
   mapCap: c => `Centrée sur ${c} · points gris : autres patinoires · carte ©`, osm: "contributeurs d'OpenStreetMap", mapAria: (c, r, d) => `Carte centrée sur ${c} montrant ${r}, à ${d}`,
@@ -887,6 +909,7 @@ function render() {
       <div class="side">
         ${state.mode === "near" && r.dist != null ? `<span class="km">${r.dist.toFixed(1)} km</span>` : ""}
         <span class="cost">${esc(r.cost)}</span>
+        ${busyOf(r) ? `<span class="busy busy-${busyOf(r).level}"><i></i>${esc(t("busy_" + busyOf(r).level))}</span>` : ""}
         <span class="more"><i class="chev"></i>${isOpen ? t("less") : esc(t("more"))}</span>
       </div>
       ${isOpen ? detailsHTML(r, r.dateObj) : ""}
