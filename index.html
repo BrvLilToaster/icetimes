@@ -258,6 +258,7 @@ main.full .panel { display: none; }
 .btn:hover { filter: brightness(1.06); }
 .map { align-self: start; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .map svg { display: block; width: 100%; height: auto; }
+.gmap iframe { display: block; width: 100%; aspect-ratio: 600 / 380; border: 0; }
 .map figcaption a { color: var(--muted); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .osm { filter: invert(.92) hue-rotate(180deg) saturate(.7) brightness(.95); } }
 :root[data-theme="dark"] .osm { filter: invert(.92) hue-rotate(180deg) saturate(.7) brightness(.95); }
@@ -567,6 +568,21 @@ function dur(min) { const h = Math.floor(min / 60), m = min % 60; return (h ? h 
 function gmaps(r, dir) { const q = encodeURIComponent(r.rink + ", " + r.address + (r.address.includes(r.city) ? "" : ", " + r.city) + ", BC");
   return dir ? "https://www.google.com/maps/dir/?api=1&destination=" + q : "https://www.google.com/maps/search/?api=1&query=" + q; }
 
+/* Google Maps embed (Maps Embed API, free). Only used where GMAPS_KEY is set (icetimes.ca); the key is
+   restricted in Google Cloud to icetimes.ca, so it is safe to be visible in the page. Without a key the
+   built-in OpenStreetMap image below is used. */
+const GMAPS_KEY = "";
+function gmapEmbed(r) {
+  const dest = encodeURIComponent(r.rink + ", " + r.address + (r.address.includes(r.city) ? "" : ", " + r.city) + ", BC");
+  const lang = "&language=" + (LANG === "fr" ? "fr" : "en") + "&region=CA";
+  const pl = state.mode === "near" ? matchPlace(state.origin) : null;
+  const src = pl
+    ? `https://www.google.com/maps/embed/v1/directions?key=${GMAPS_KEY}&origin=${pl[1]},${pl[2]}&destination=${dest}&mode=driving${lang}`
+    : `https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${dest}&zoom=14${lang}`;
+  const cap = pl ? t("gmapRoute", pl[0]) : "";
+  return `<figure class="map gmap" style="margin:0"><iframe src="${src}" title="${esc(t("gmapTitle", r.rink))}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>${cap ? `<figcaption>${esc(cap)}</figcaption>` : ""}</figure>`;
+}
+
 /* Map: a street map image from OpenStreetMap (© OpenStreetMap contributors, ODbL) built into the page,
    because outside map tiles can't load here. Web-Mercator pixels at zoom 12. */
 const OSM = { src: "/map.jpg", x0: 165150.72, y0: 358455.35082583304, w: 2621, h: 1715, S: 256 * 4096 };
@@ -648,7 +664,7 @@ function detailsHTML(r, date) {
       <a class="report" data-track="report_problem" href="${reportMail(r, date)}">${t("reportLink")}</a>
       ${same.length > 1 ? `<div class="also"><h4>${esc(t("allAtRink", dateFmt(date, { weekday: "long" })))}</h4><ul>${same.map(x => `<li class="${x.id === r.id ? "cur" : ""}"><span>${fmt(x.start)}–${fmt(x.end)}</span><span>${esc(x.session)}</span></li>`).join("")}</ul></div>` : ""}
     </div>
-    <figure class="map" style="margin:0">${mapSVG(r)}<figcaption>${esc(t("mapCap", mapCentre(r)[0]))} <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">${t("osm")}</a></figcaption></figure>
+    ${GMAPS_KEY ? gmapEmbed(r) : `<figure class="map" style="margin:0">${mapSVG(r)}<figcaption>${esc(t("mapCap", mapCentre(r)[0]))} <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">${t("osm")}</a></figcaption></figure>`}
   </div>`;
 }
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
@@ -675,7 +691,7 @@ const L = {
  en: {
   brandSr: "Open Ice Finder: Lower Mainland drop-in ice times", title: "Drop-in Hockey, Stick & Puck & Public Skating Times – Metro Vancouver | Open Ice Finder",
   disclaimer: `<b>Check the rink's website before you go.</b> <span class="dlong">These times are copied from city and rec-centre schedules, and sessions can be cancelled or changed at short notice (tournaments, holidays, maintenance). Use the link on each listing to confirm.</span><span class="dshort">Times can change at short notice.</span>`,
-  updated: d => `Last updated <b>Nov 15, 2026</b> · refreshed weekly`,
+  updated: d => `Last updated <b>${d}</b> · refreshed weekly`,
   filtersAria: "Search filters", todayBtn: "Show open ice today", lgType: "Type of ice time", lgGender: "Gender", gAny: "Any", gOpen: "Open to all", gWomen: "Women's",
   lgLoc: "Location", byCity: "By city", nearMe: "Near me", cityLbl: "City", originLbl: "Your city or neighbourhood", originPh: "Start typing, e.g. Vancouver",
   within: "Within", radiusHint: "Straight-line distance from the centre of the place you enter.", lgDay: "Day", lgTime: "Time of day", from: "From", to: "To", reset: "Reset filters",
@@ -704,6 +720,7 @@ const L = {
   busyCountsNote: (p, w) => `on average ${p}% full at start time (${w} week${w == 1 ? "" : "s"} of sign-up counts)`,
   privTag: "Private rink · book online", bookOnline: "Book online",
   toTime: "to", directions: "Directions", openMaps: "Open in Google Maps", citySched: c => `${c} schedule`, allAtRink: d => `All ice at this rink on ${d}s`,
+  gmapRoute: c => `Driving route from ${c}`, gmapTitle: r => `Google map of ${r}`,
   mapCap: c => `Centred on ${c} · grey dots are other rinks · map ©`, osm: "OpenStreetMap contributors", mapAria: (c, r, d) => `Street map centred on ${c} showing ${r}, ${d} away`,
   hintPick: "Pick from the list as you type.", hintFrom: p => `Searching from ${p}.`, hintMiss: "Not on the list yet. Try the nearest city name.",
   mobToggle: "Location, day &amp; more", showN: "Show", moreFilters: "More filters", where: "Where", when: "When", time: "Time", done: "Done",
@@ -760,6 +777,7 @@ const L = {
   busyCountsNote: (p, w) => `en moyenne ${p} % plein au début (${w} semaine${w > 1 ? "s" : ""} d'inscriptions)`,
   privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne",
   toTime: "à", directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", citySched: c => `Horaire de ${c}`, allAtRink: d => `Toutes les séances à cette patinoire le ${d}`,
+  gmapRoute: c => `Itinéraire en voiture depuis ${c}`, gmapTitle: r => `Carte Google de ${r}`,
   mapCap: c => `Centrée sur ${c} · points gris : autres patinoires · carte ©`, osm: "contributeurs d'OpenStreetMap", mapAria: (c, r, d) => `Carte centrée sur ${c} montrant ${r}, à ${d}`,
   hintPick: "Choisissez dans la liste en tapant.", hintFrom: p => `Recherche à partir de ${p}.`, hintMiss: "Pas encore dans la liste. Essayez le nom de la ville la plus proche.",
   mobToggle: "Lieu, jour et plus", showN: "Voir", moreFilters: "Plus de filtres", where: "Où", when: "Quand", time: "Heure", done: "Terminé",
