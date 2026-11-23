@@ -256,6 +256,31 @@ main.full .panel { display: none; }
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink) !important; text-decoration: none; font: 500 13px var(--font-body); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) !important; }
 .btn:hover { filter: brightness(1.06); }
+button.btn { cursor: pointer; }
+.btn svg, .share-site svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hdr-btns { display: flex; align-items: center; gap: 16px; }
+.share-site { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font: 500 14px var(--font-body); color: var(--accent); cursor: pointer; }
+:root[data-skin] .share-site { color: var(--band-ink); border-color: currentColor; }
+@media (max-width: 640px) {
+  .share-site { position: absolute; top: 20px; right: 58px; padding: 6px 9px; }
+  .share-site span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .share-site svg { width: 17px; height: 17px; }
+  .brand .logo { max-width: calc(100vw - 140px) !important; }
+}
+dialog.share { border: 0; border-radius: 14px; padding: 0; width: min(420px, calc(100vw - 24px)); background: var(--surface); color: var(--ink); box-shadow: 0 18px 50px rgba(0,0,0,.3); }
+dialog.share::backdrop { background: rgba(8,18,30,.5); }
+.sh-in { padding: 18px 18px 16px; }
+.sh-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.sh-top h2 { font: 700 24px/1.1 var(--font-display); margin: 0; letter-spacing: .3px; text-transform: uppercase; }
+.sh-x { background: none; border: 0; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0 4px; }
+.sh-prev { margin: 10px 0 14px; padding: 10px 12px; border-radius: 8px; background: var(--bg); font-size: 14px; overflow-wrap: anywhere; }
+.sh-prev small { display: block; color: var(--muted); margin-top: 4px; font-size: 12px; }
+.sh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sh-grid a, .sh-grid button { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font: 500 14px var(--font-body); cursor: pointer; text-align: center; }
+.sh-grid a:hover, .sh-grid button:hover { border-color: var(--accent); }
+.sh-grid .wide { grid-column: 1 / -1; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.sh-note { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
+.sh-done { color: var(--accent) !important; font-weight: 600; }
 .map { align-self: start; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .map svg { display: block; width: 100%; height: auto; }
 .gmap iframe { display: block; width: 100%; aspect-ratio: 600 / 380; border: 0; }
@@ -375,9 +400,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 <header>
   <h1 class="brand" id="brand"><span class="sr-only" data-i18n="brandSr">Open Ice Finder: Lower Mainland drop-in ice times</span><span id="logoBox"></span></h1>
-  <div class="hdr-r"><button type="button" class="lang" id="langBtn" translate="no"></button>
+  <div class="hdr-r"><div class="hdr-btns"><button type="button" class="share-site" id="shareSite"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><span data-i18n="shareSite">Share</span></button><button type="button" class="lang" id="langBtn" translate="no"></button></div>
   <div class="source" id="source"><i class="dot live" id="srcdot"></i><span id="srctext">Last updated <b>Nov 15, 2026</b> · refreshed weekly</span></div></div>
 </header>
+<dialog class="share" id="shareDlg" aria-labelledby="shH"><div class="sh-in">
+  <div class="sh-top"><h2 id="shH"></h2><button type="button" class="sh-x" id="shX" aria-label="Close">×</button></div>
+  <div class="sh-prev" id="shPrev"></div>
+  <div class="sh-grid" id="shGrid"></div>
+  <p class="sh-note" id="shNote"></p>
+</div></dialog>
 <div class="disclaimer" role="note" data-i18n-html="disclaimer"><b>Check the rink's website before you go.</b> <span class="dlong">These times are copied from city and rec-centre schedules, and sessions can be cancelled or changed at short notice (tournaments, holidays, maintenance). Use the link on each listing to confirm.</span><span class="dshort">Times can change at short notice.</span></div>
 <main id="main">
   <aside class="panel collapsed" id="panel" aria-label="Search filters" data-i18n-aria="filtersAria">
@@ -662,6 +693,7 @@ function detailsHTML(r, date) {
         <a class="btn primary" data-track="directions" href="${gmaps(r, true)}" target="_blank" rel="noopener">${t("directions")}</a>
         <a class="btn" data-track="google_maps" href="${gmaps(r, false)}" target="_blank" rel="noopener">${t("openMaps")}</a>
         ${r.priv && r.link ? `<a class="btn" data-track="book_online" href="${r.link}" target="_blank" rel="noopener">${esc(t("bookOnline"))}</a>` : link ? `<a class="btn" data-track="city_schedule" href="${link}" target="_blank" rel="noopener">${esc(t("citySched", r.city))}</a>` : ""}
+        <button type="button" class="btn" data-share="${r.id}|${isoOf(date)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>${esc(t("shareBtn"))}</button>
       </div>
       <a class="report" data-track="report_problem" href="${reportMail(r, date)}">${t("reportLink")}</a>
       ${same.length > 1 ? `<div class="also"><h4>${esc(t("allAtRink", dateFmt(date, { weekday: "long" })))}</h4><ul>${same.map(x => `<li class="${x.id === r.id ? "cur" : ""}"><span>${fmt(x.start)}–${fmt(x.end)}</span><span>${esc(x.session)}</span></li>`).join("")}</ul></div>` : ""}
@@ -731,6 +763,12 @@ const L = {
   fbBtn: "Send feedback", fbOr: "or email", copy: "Copy", copied: "Copied",
   fbSubject: "Open Ice Finder feedback", fbBody: "Hi! My feedback:\n\n",
   reportLink: "Report a problem with this session",
+  shareSite: "Share", shareBtn: "Share", shareSessH: "Share this session", shareSiteH: "Share Open Ice Finder", shClose: "Close",
+  shNative: "Share with your phone's apps…", shCopy: "Copy link", shCopied: "Link copied ✓", shText: "Text message", shEmail: "Email",
+  shNote: "For Instagram, Messenger, Snapchat or Discord, copy the link and paste it into a chat. Nothing is posted until you press send in the app.",
+  shSess: (w, d, tm, rk, c) => `${w}, ${d}, ${tm} at ${rk} (${c}).`, shSessQ: "Who's in?",
+  shSiteTxt: "Drop-in skating, hockey and stick & puck times at rinks across the Lower Mainland, all in one place:",
+  shEmailSubj: "Ice time", shGone: "That shared session has already finished. Here's what's coming up this week instead.",
   repSubject: (s, r) => `Problem with a session: ${s} at ${r}`,
   repBody: (s, r, c, d, tm) => `Session: ${s}\nRink: ${r}, ${c}\nWhen: ${d}, ${tm}\n\nWhat's wrong (e.g. cancelled, new time, wrong price):\n\n`,
   aboutH: "About", aboutP: "Open Ice Finder puts drop-in public skating, hockey, and stick and puck times at community rinks across the Lower Mainland in one place. It's an independent project, built by a local skater.",
@@ -788,6 +826,12 @@ const L = {
   fbBtn: "Envoyer un commentaire", fbOr: "ou écrivez à", copy: "Copier", copied: "Copié",
   fbSubject: "Commentaire sur Open Ice Finder", fbBody: "Bonjour! Mon commentaire :\n\n",
   reportLink: "Signaler un problème avec cette séance",
+  shareSite: "Partager", shareBtn: "Partager", shareSessH: "Partager cette séance", shareSiteH: "Partager Open Ice Finder", shClose: "Fermer",
+  shNative: "Partager avec les applis du téléphone…", shCopy: "Copier le lien", shCopied: "Lien copié ✓", shText: "Texto", shEmail: "Courriel",
+  shNote: "Pour Instagram, Messenger, Snapchat ou Discord, copiez le lien et collez-le dans une conversation. Rien n'est publié avant que vous appuyiez sur Envoyer dans l'appli.",
+  shSess: (w, d, tm, rk, c) => `${w}, ${d}, ${tm} à ${rk} (${c}).`, shSessQ: "Qui vient?",
+  shSiteTxt: "Les heures de patinage, de hockey libre et de bâton et rondelle des patinoires de la région, au même endroit :",
+  shEmailSubj: "Séance sur glace", shGone: "Cette séance partagée est déjà terminée. Voici ce qui s'en vient cette semaine.",
   repSubject: (s, r) => `Problème avec une séance : ${s} à ${r}`,
   repBody: (s, r, c, d, tm) => `Séance : ${s}\nPatinoire : ${r}, ${c}\nQuand : ${d}, ${tm}\n\nLe problème (p. ex. annulée, nouvelle heure, mauvais prix) :\n\n`,
   aboutH: "À propos", aboutP: "Open Ice Finder réunit en un seul endroit les heures de patinage public, de hockey libre et de bâton et rondelle des patinoires communautaires du Lower Mainland. C'est un projet indépendant, créé par un patineur de la région.",
@@ -905,6 +949,7 @@ function render() {
   if (last >= "2026-12-19" && first <= "2027-01-04") notes.push(t("holidayN"));
   const weekly = [...new Set(rows.filter(r => r.priv || WEEKLY.includes(r.city)).map(r => r.priv ? r.rink : r.city))];
   if (weekly.length && (first < "2026-11-14" || last > "2026-11-22")) notes.push(t("weeklyN", weekly.join(", ")));
+  if (sharedGone) { notes.unshift(t("shGone")); sharedGone = false; }
   $("notices").innerHTML = notes.map(n => `<div class="notice">${esc(n)}</div>`).join("");
 
   if (!rows.length) {
@@ -1151,6 +1196,91 @@ function buildFooter() {
   $("copyMail").onclick = async e => { try { await navigator.clipboard.writeText(FEEDBACK_EMAIL); e.target.textContent = t("copied"); setTimeout(() => e.target.textContent = t("copy"), 1600); } catch {} };
 }
 
+/* ---------- sharing ----------
+   Plain links only (no third-party scripts or trackers). Facebook gets the URL alone: its Platform Policy
+   forbids pre-filling the user's message. X, WhatsApp, Bluesky and Reddit document pre-filled text the
+   user can edit before posting. Brand logos are not drawn; services are named in plain text. */
+const SITE_URL = "https://icetimes.ca/";
+const shareBase = () => /(^|\.)icetimes\.ca$|github\.io$/.test(location.hostname) ? location.origin + location.pathname : SITE_URL;
+const slug = s => norm(s).replace(/ /g, "-");
+const skey = r => `${slug(r.type)}-${r.start}-${slug(r.rink)}`;
+const touch = () => matchMedia("(pointer: coarse)").matches;
+var shareData = null, sharedGone = false;
+const shareTrack = m => track("share", { ice_label: m + " · " + shareData.kind, ...(shareData.r ? { ice_type: shareData.r.type, ice_city: shareData.r.city, ice_rink: shareData.r.rink } : {}) });
+function sessionShare(r, iso) {
+  const date = parseISO(iso), d = dateFmt(date, { weekday: "short", month: "short", day: "numeric" });
+  const tm = fmt(r.start) + "–" + (r.end >= 1440 ? t("midnight") : fmt(r.end));
+  const what = norm(r.session) === norm(r.type) || norm(r.session) === norm(typeLbl(r.type)) ? typeLbl(r.type) : typeLbl(r.type) + ": " + r.session;
+  return { kind: "session", r, heading: t("shareSessH"), title: t("title"), text: t("shSess", what, d, tm, r.rink, r.city) + " " + t("shSessQ"), url: shareBase() + "#s/" + iso + "/" + skey(r) };
+}
+const siteShare = () => ({ kind: "site", heading: t("shareSiteH"), title: t("title"), text: t("shSiteTxt"), url: shareBase() });
+async function startShare(d) {
+  shareData = d;
+  /* Phones: the system share sheet (Messages, Instagram, Messenger, Snapchat...). */
+  if (navigator.share && touch()) {
+    try { await navigator.share({ title: d.title, text: d.text, url: d.url }); shareTrack("native"); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  openShareDlg();
+}
+function openShareDlg() {
+  const d = shareData, u = encodeURIComponent(d.url), tx = encodeURIComponent(d.text), both = encodeURIComponent(d.text + " " + d.url);
+  const links = [
+    ["WhatsApp", `https://wa.me/?text=${both}`],
+    ["Facebook", `https://www.facebook.com/sharer/sharer.php?u=${u}`],
+    ["X", `https://x.com/intent/tweet?text=${tx}&url=${u}`],
+    ["Reddit", `https://www.reddit.com/submit?url=${u}&title=${tx}`],
+    ["Bluesky", `https://bsky.app/intent/compose?text=${both}`],
+    ...(touch() ? [[t("shText"), `sms:?&body=${both}`]] : []),
+    [t("shEmail"), `mailto:?subject=${encodeURIComponent(d.kind === "session" ? t("shEmailSubj") : t("title"))}&body=${encodeURIComponent(d.text + "\n\n" + d.url)}`],
+  ];
+  $("shH").textContent = d.heading;
+  $("shPrev").innerHTML = `${esc(d.text)}<small>${esc(d.url)}</small>`;
+  $("shGrid").innerHTML = (navigator.share ? `<button type="button" class="wide" data-native>${esc(t("shNative"))}</button>` : "")
+    + links.map(([n, h]) => `<a href="${esc(h)}" target="_blank" rel="noopener noreferrer" data-m="${esc(n)}">${esc(n)}</a>`).join("")
+    + `<button type="button" data-copy>${esc(t("shCopy"))}</button>`;
+  $("shNote").textContent = t("shNote");
+  $("shX").setAttribute("aria-label", t("shClose"));
+  const dlg = $("shareDlg"); if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute("open", "");
+}
+function closeShare() { const dlg = $("shareDlg"); if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
+async function copyLink(btn) {
+  const v = shareData.url; let ok = false;
+  try { await navigator.clipboard.writeText(v); ok = true; } catch {
+    const ta = document.createElement("textarea"); ta.value = v; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.append(ta); ta.select(); try { ok = document.execCommand("copy"); } catch {} ta.remove(); }
+  if (ok) { btn.textContent = t("shCopied"); btn.classList.add("sh-done"); shareTrack("copy"); setTimeout(() => { btn.textContent = t("shCopy"); btn.classList.remove("sh-done"); }, 2200); }
+  else prompt(t("shCopy"), v);
+}
+$("shareSite").onclick = e => { e.stopPropagation(); startShare(siteShare()); };
+$("shX").onclick = closeShare;
+$("shareDlg").addEventListener("click", e => {
+  e.stopPropagation();
+  if (e.target === $("shareDlg")) { closeShare(); return; }
+  if (e.target.closest("[data-native]")) { navigator.share({ title: shareData.title, text: shareData.text, url: shareData.url }).then(() => { shareTrack("native"); closeShare(); }).catch(() => {}); return; }
+  const c = e.target.closest("[data-copy]"); if (c) { copyLink(c); return; }
+  const a = e.target.closest("a[data-m]"); if (a) { shareTrack(a.dataset.m); setTimeout(closeShare, 150); }
+});
+$("list").addEventListener("click", e => {
+  const b = e.target.closest("[data-share]"); if (!b) return;
+  const [id, iso] = b.dataset.share.split("|"); startShare(sessionShare(DATA[+id], iso));
+});
+/* Open a shared session link: #s/YYYY-MM-DD/type-start-rink */
+function openShared(h) {
+  const m = /^s\/(\d{4}-\d{2}-\d{2})\/(.+)$/.exec(h || ""); if (!m) return false;
+  const [, iso, key] = m, r = DATA.find(x => skey(x) === key); if (!r) return false;
+  Object.assign(state, { types: new Set(TYPES.map(x => x[0])), mode: "city", city: "All", gender: "any", from: 360, to: 1440, todayMode: false, locSet: true, daySet: true });
+  const now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
+  const live = iso >= isoToday() && DAYS[parseISO(iso).getDay()] === r.day && !(iso === isoToday() && r.end <= nm);
+  if (live) { state.week = false; state.date = iso; openId = r.id; }
+  else { state.week = true; state.date = isoToday(); openId = null; sharedGone = true; }
+  try { history.replaceState(null, "", location.pathname + location.search); } catch {}
+  buildTypeChips(); syncControls(); render();
+  if (live) { const el = document.querySelector(`.card[data-id="${r.id}"]`); if (el) setTimeout(() => el.scrollIntoView({ block: "center" }), 60); }
+  return true;
+}
+window.addEventListener("hashchange", () => openShared(location.hash.slice(1)));
+
 /* ---------- apply language ---------- */
 const UPDATED_RAW = ($("srctext").querySelector("b") || {}).textContent || "";
 function updatedDate() { const m = UPDATED_RAW.match(/([A-Z][a-z]{2}) (\d{1,2}), (\d{4})/); if (!m) return UPDATED_RAW;
@@ -1223,7 +1353,7 @@ document.addEventListener("change", e => {
   });
 }, true);
 
-render();
+if (!openShared(location.hash.slice(1))) render();
 </script>
 </body>
 </html>

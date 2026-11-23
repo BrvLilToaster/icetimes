@@ -248,7 +248,7 @@ def main():
         open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8").write(idx2)
 
     today = datetime.date.today().isoformat()
-    urls = [SITE + "/"] + [f"{SITE}/{p}" for p in paths]
+    urls = [SITE + "/", SITE + "/sports/"] + [f"{SITE}/{p}" for p in paths]  # /sports/ is the multi-sport Drop-in Finder
     sm = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     sm += [f"  <url><loc>{u}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq></url>" for u in urls]
     sm.append("</urlset>")
