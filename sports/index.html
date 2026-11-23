@@ -96,7 +96,6 @@ header { max-width: 1200px; margin: 0 auto; padding: 18px 20px 6px; display: fle
 .tile .tn { font: 700 19px/1.05 var(--font-display); text-transform: uppercase; letter-spacing: .3px; overflow-wrap: anywhere; }
 .tile .tc { font-size: 12.5px; color: var(--muted); }
 .tile .tc b { color: var(--ink); font-weight: 600; }
-.tile.none { opacity: .6; }
 @media (max-width: 560px) { .tiles { grid-template-columns: 1fr 1fr; gap: 8px; } .tile { grid-template-columns: 26px 1fr; gap: 6px 8px; padding: 10px 10px 10px 12px; align-items: center; } .tile .ic { grid-row: auto; width: 26px; height: 26px; border-radius: 6px; } .tile .ic svg { width: 17px; height: 17px; } .tile .tn { font-size: 15px; overflow-wrap: normal; } .tile .tc { grid-column: 1 / -1; font-size: 12px; } }
 .recent { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 18px; }
 .recent .lbl { font: 600 12px var(--font-body); text-transform: uppercase; letter-spacing: .9px; color: var(--muted); margin-right: 2px; }
@@ -247,7 +246,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 <header>
   <button type="button" class="brand" id="brand" aria-label="Drop-in Finder home">
-    <svg viewBox="0 0 36 52" aria-hidden="true"><path d="M18 2C9 2 2 8.8 2 17.6 2 29 18 50 18 50s16-21 16-32.4C34 8.8 27 2 18 2z" fill="#d7262e"/><circle cx="18" cy="17.5" r="8.5" fill="#fff"/><path d="M12 17.5h12M18 11.5v12" stroke="#0b2d6b" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="17.5" r="8.5" fill="none" stroke="#0b2d6b" stroke-width="1.6"/></svg>
+    <svg viewBox="0 0 36 52" aria-hidden="true"><path d="M18 2C9 2 2 8.8 2 17.6 2 29 18 50 18 50s16-21 16-32.4C34 8.8 27 2 18 2z" fill="#d7262e"/><circle cx="18" cy="17.6" r="5.8" fill="#fff"/></svg>
     <span><span class="wm">Drop-in <span>Finder</span></span><span class="sub" data-i18n="tagline">Drop-in sports &amp; ice times · Lower Mainland</span></span>
   </button>
   <div class="hdr-r">
@@ -434,7 +433,7 @@ const L = {
   allToday: "Everything on today", recent: "Your sports",
   grp: { court: "Court & gym", racquet: "Racquet & table", ice: "On the ice", other: "Open gym & more" },
   sp: { skate: "Public skating", sp: "Stick & puck", hockey: "Drop-in hockey", basketball: "Basketball", volleyball: "Volleyball", soccer: "Indoor soccer", floorhockey: "Ball & floor hockey", netball: "Netball", badminton: "Badminton", pickleball: "Pickleball", tabletennis: "Table tennis", tennis: "Tennis", opengym: "Open gym", all: "All sports" },
-  tileToday: (n, next, w) => n ? `<b>${n} today</b>${next ? " · next " + next : ""}` : `None left today · ${w} this week`,
+  tileToday: (n, next, w) => n ? `<b>${n} today</b>${next ? " · next " + next : ""}` : `${w} this week`,
   tileWeek: n => `${n} this week`,
   back: "Pick a sport", filters: "Where, when & who", lgWhere: "Where", byCity: "By city", nearMe: "Near me", originLbl: "Your city or neighbourhood", originPh: "Start typing, e.g. Burnaby",
   useLoc: "Use my current location", locating: "Finding you…", locFail: "Couldn't get your location. Type a place instead.", myLoc: "my location",
@@ -480,7 +479,7 @@ const L = {
   allToday: "Tout ce qui a lieu aujourd'hui", recent: "Vos sports",
   grp: { court: "Sports de gymnase", racquet: "Raquette et table", ice: "Sur la glace", other: "Gymnase libre et plus" },
   sp: { skate: "Patinage public", sp: "Bâton et rondelle", hockey: "Hockey libre", basketball: "Basketball", volleyball: "Volleyball", soccer: "Soccer intérieur", floorhockey: "Hockey-balle et cosom", netball: "Netball", badminton: "Badminton", pickleball: "Pickleball", tabletennis: "Tennis de table", tennis: "Tennis", opengym: "Gymnase libre", all: "Tous les sports" },
-  tileToday: (n, next, w) => n ? `<b>${n} aujourd'hui</b>${next ? " · prochaine " + next : ""}` : `Plus rien aujourd'hui · ${w} cette semaine`,
+  tileToday: (n, next, w) => n ? `<b>${n} aujourd'hui</b>${next ? " · prochaine " + next : ""}` : `${w} cette semaine`,
   tileWeek: n => `${n} cette semaine`,
   back: "Choisir un sport", filters: "Où, quand et qui", lgWhere: "Où", byCity: "Par ville", nearMe: "Près de moi", originLbl: "Votre ville ou quartier", originPh: "Commencez à taper, p. ex. Burnaby",
   useLoc: "Utiliser ma position actuelle", locating: "Localisation…", locFail: "Position introuvable. Tapez plutôt un lieu.", myLoc: "ma position",
@@ -592,7 +591,7 @@ function buildHome() {
   const dow = DAYS[new Date().getDay()];
   for (const r of ROWS) { const s = byS[r.sport]; s.week++;
     if (r.day === dow && r.end > nm && matchesBase(r, { sport: r.sport })) { s.today++; if (r.start >= nm && (s.next == null || r.start < s.next)) s.next = r.start; } }
-  const tile = k => { const s = byS[k]; return `<button type="button" class="tile${s.today ? "" : " none"}" style="--c:${SCOL[k]}" data-sport="${k}"><span class="ic">${icon(k)}</span><span class="tn">${esc(spLbl(k))}</span><span class="tc">${t("tileToday", s.today, s.next != null ? fmt(s.next) : "", s.week)}</span></button>`; };
+  const tile = k => { const s = byS[k]; return `<button type="button" class="tile" style="--c:${SCOL[k]}" data-sport="${k}"><span class="ic">${icon(k)}</span><span class="tn">${esc(spLbl(k))}</span><span class="tc">${t("tileToday", s.today, s.next != null ? fmt(s.next) : "", s.week)}</span></button>`; };
   $("groups").innerHTML = GROUPS.map(g => `<section class="grp"><h3>${esc(t("grp")[g])}</h3><div class="tiles">${SPORTS.filter(s => s[1] === g).map(s => tile(s[0])).join("")}</div></section>`).join("");
   $("recent").hidden = !recent.length;
   $("recent").innerHTML = `<span class="lbl">${esc(t("recent"))}</span>` + recent.map(k => `<button type="button" class="schip" style="--c:${SCOL[k]}" data-sport="${k}">${icon(k)}${esc(spLbl(k))}</button>`).join("");
