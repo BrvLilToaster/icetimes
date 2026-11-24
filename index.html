@@ -24,7 +24,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <title>Drop-in Hockey, Stick & Puck & Public Skating Times – Metro Vancouver | Open Ice Finder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Oswald:wght@500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* Layout: a sticky filter panel on the left (top on phones), results list on the right, ordered by start time like a rink board. */
 :root {
@@ -80,13 +80,15 @@ h1 span { color: var(--accent); }
 .source { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
 .dot.live { background: #22a55b; }
-.disclaimer { max-width: 1160px; margin: 4px auto 8px; padding: 9px 12px; font-size: 13px; background: var(--warn-soft); border-left: 4px solid var(--warn); border-radius: 6px; }
+.dot.old { background: var(--warn); }
+.disclaimer { max-width: 1160px; margin: 0 auto 10px; padding: 0; font-size: 13px; color: var(--muted); }
+.disclaimer b { color: var(--ink); font-weight: 600; }
 @media (max-width: 1200px) { .disclaimer { margin: 4px 20px 8px; } }
 main { max-width: 1200px; margin: 0 auto; padding: 8px 20px 40px; display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
 @media (max-width: 820px) { main { grid-template-columns: 1fr; } }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 16px; position: sticky; top: 12px; }
 @media (max-width: 820px) { .panel { position: static; } }
-.today-btn { font: 700 20px/1 var(--font-display); text-transform: uppercase; letter-spacing: .6px; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 14px; cursor: pointer; }
+.today-btn { font: 700 20px/1 var(--font-display); letter-spacing: .2px; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 14px; cursor: pointer; }
 .today-btn:hover { filter: brightness(1.08); }
 fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
 legend, .lbl { font: 600 12px/1 var(--font-body); text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 8px; padding: 0; }
@@ -109,9 +111,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .hint { font-size: 12px; color: var(--muted); margin: 0; }
 .reset { background: none; border: 0; color: var(--accent); font: 500 13px var(--font-body); cursor: pointer; justify-self: start; padding: 0; }
 .summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 0 0 12px; }
-.summary h2 { font: 700 26px/1.1 var(--font-display); text-transform: uppercase; margin: 0; }
+.summary h2 { font: 700 26px/1.1 var(--font-display); margin: 0; }
 .summary p { margin: 0; color: var(--muted); font-size: 14px; }
-.notice { background: var(--warn-soft); color: var(--ink); border-left: 4px solid var(--warn); border-radius: 6px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
+.notice { color: var(--muted); border-left: 3px solid var(--warn); padding: 2px 0 2px 10px; font-size: 13px; margin: 0 0 12px; }
 .list { display: grid; gap: 8px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--c, var(--accent)); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: 96px 1fr auto; gap: 4px 14px; align-items: start; }
 @media (max-width: 520px) { .card { grid-template-columns: 78px 1fr; } .card .side { grid-column: 1 / -1; justify-self: start; text-align: left; } }
@@ -128,12 +130,12 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .busy i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .busy-quiet { color: #1f7a4a; } .busy-moderate { color: #a86b00; } .busy-busy { color: #b42318; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .busy-quiet { color: #6fcf97; } :root:not([data-theme="light"]) .busy-moderate { color: #f2c46b; } :root:not([data-theme="light"]) .busy-busy { color: #f2827a; } }
-.pill { font: 600 11px/1 var(--font-body); text-transform: uppercase; letter-spacing: .6px; color: var(--c); }
+.pill { font: 500 12px/1 var(--font-body); color: var(--muted); }
 .meta { font-size: 13px; color: var(--muted); }
 .meta b { color: var(--ink); font-weight: 500; }
 .side { text-align: right; font-size: 13px; display: grid; gap: 4px; justify-items: end; }
 .km { font: 700 18px var(--font-display); }
-.cost { color: var(--ink); max-width: 220px; }
+.cost { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .side a { color: var(--accent); }
 .card.cancelled { opacity: .6; }
 /* ---- footer ---- */
@@ -142,7 +144,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .site-foot a.today-btn { color: var(--accent-ink); }
 .fcols ul.cities { grid-template-columns: 1fr 1fr; gap: 4px 14px; }
 .fb { display: grid; grid-template-columns: 1fr auto; gap: 14px 24px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 26px; }
-.fb h2 { font: 700 20px var(--font-display); text-transform: uppercase; letter-spacing: .4px; color: var(--ink); margin: 0 0 4px; }
+.fb h2 { font: 700 20px var(--font-display); letter-spacing: .4px; color: var(--ink); margin: 0 0 4px; }
 .fb p { margin: 0; }
 .fb-act { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
 .fb-act .today-btn { font-size: 16px; padding: 11px 18px; text-decoration: none; display: inline-block; }
@@ -160,7 +162,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .fcols details p { margin: 8px 0 4px; }
 .fbase { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: space-between; font-size: 13px; }
 .report { display: inline-block; margin-top: 10px; font-size: 13px; }
-.dayhead { display: flex; align-items: baseline; gap: 10px; margin: 14px 0 2px; font: 700 18px var(--font-display); text-transform: uppercase; letter-spacing: .4px; }
+.dayhead { display: flex; align-items: baseline; gap: 10px; margin: 14px 0 2px; font: 700 18px var(--font-display); letter-spacing: .4px; }
 .dayhead:first-child { margin-top: 0; }
 .dayhead small { font: 500 13px var(--font-body); text-transform: none; letter-spacing: 0; color: var(--muted); }
 [hidden] { display: none !important; }
@@ -171,7 +173,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   .ftoggle { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--ink); cursor: pointer; }
   .ftoggle[aria-expanded="true"] { border-color: var(--accent); }
   .ft-l { display: grid; gap: 2px; min-width: 0; }
-  .ft-k { font: 700 16px var(--font-display); text-transform: uppercase; letter-spacing: .4px; }
+  .ft-k { font: 700 16px var(--font-display); letter-spacing: .4px; }
   .ft-k .badge { background: var(--accent); color: var(--accent-ink); border-radius: 999px; font: 600 11px var(--font-body); padding: 1px 7px; margin-left: 4px; vertical-align: 2px; }
   .ft-s { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ftoggle .chev { margin: 0 6px 4px 0; }
@@ -203,7 +205,7 @@ main.full .panel { display: none; }
 .step-h { width: 100%; display: grid; grid-template-columns: 26px 1fr auto; gap: 2px 10px; align-items: center; text-align: left; background: var(--surface); border: 0; padding: 10px 12px; cursor: pointer; color: var(--ink); }
 .step-h .num { grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font: 700 14px var(--font-display); }
 .step.open .step-h .num { background: var(--accent); color: var(--accent-ink); }
-.step-h .st { font: 700 17px/1.1 var(--font-display); text-transform: uppercase; letter-spacing: .3px; }
+.step-h .st { font: 700 17px/1.1 var(--font-display); letter-spacing: .3px; }
 .step-h .ss { grid-column: 2; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .step-h .chev { grid-row: 1 / span 2; grid-column: 3; }
 .step-b { padding: 4px 12px 14px; display: grid; gap: 14px; }
@@ -247,7 +249,7 @@ main.full .panel { display: none; }
 .more { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
 .details { grid-column: 1 / -1; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; cursor: default; }
 @media (max-width: 640px) { .details { grid-template-columns: 1fr; } }
-.when { font: 700 20px/1.15 var(--font-display); text-transform: uppercase; letter-spacing: .3px; margin: 0 0 10px; }
+.when { font: 700 20px/1.15 var(--font-display); letter-spacing: .3px; margin: 0 0 10px; }
 .when small { display: block; font: 500 13px var(--font-body); text-transform: none; letter-spacing: 0; color: var(--muted); margin-top: 3px; }
 .facts { display: grid; grid-template-columns: 88px 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
 .facts dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; padding-top: 2px; }
@@ -260,7 +262,6 @@ button.btn { cursor: pointer; }
 .btn svg, .share-site svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hdr-btns { display: flex; align-items: center; gap: 16px; }
 .share-site { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font: 500 14px var(--font-body); color: var(--accent); cursor: pointer; }
-:root[data-skin] .share-site { color: var(--band-ink); border-color: currentColor; }
 @media (max-width: 640px) {
   .share-site { position: absolute; top: 20px; right: 58px; padding: 6px 9px; }
   .share-site span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -271,7 +272,7 @@ dialog.share { border: 0; border-radius: 14px; padding: 0; width: min(420px, cal
 dialog.share::backdrop { background: rgba(8,18,30,.5); }
 .sh-in { padding: 18px 18px 16px; }
 .sh-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
-.sh-top h2 { font: 700 24px/1.1 var(--font-display); margin: 0; letter-spacing: .3px; text-transform: uppercase; }
+.sh-top h2 { font: 700 24px/1.1 var(--font-display); margin: 0; letter-spacing: .3px; }
 .sh-x { background: none; border: 0; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0 4px; }
 .sh-prev { margin: 10px 0 14px; padding: 10px 12px; border-radius: 8px; background: var(--bg); font-size: 14px; overflow-wrap: anywhere; }
 .sh-prev small { display: block; color: var(--muted); margin-top: 4px; font-size: 12px; }
@@ -301,94 +302,13 @@ dialog.share::backdrop { background: rgba(8,18,30,.5); }
 .ended { opacity: .5; }
 .few { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 4px; padding: 14px 16px; background: var(--accent-soft); border-radius: 8px; font-size: 14px; }
 .few .today-btn { font-size: 15px; padding: 9px 16px; }
-.empty .et { font: 700 20px var(--font-display); text-transform: uppercase; color: var(--ink); margin: 0 0 6px; }
+.empty .et { font: 700 20px var(--font-display); color: var(--ink); margin: 0 0 6px; }
 .empty p { margin: 0 0 14px; }
 .empty .today-btn { font-size: 16px; padding: 11px 18px; }
 .empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; padding: 24px; text-align: center; color: var(--muted); }
 @media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s; } }
-/* ===== Theme previews ("Try a theme"). Colours only nod to each source; no team, government or city logos are used. ===== */
-html[data-skin] { overflow-x: clip; }
-:root[data-skin] header { padding-bottom: 16px; margin-bottom: 14px; }
-:root[data-skin] header::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 100vw; transform: translateX(-50%); background: var(--band); z-index: -1; }
-:root[data-skin] header::after { content: ""; position: absolute; bottom: 0; left: 50%; width: 100vw; transform: translateX(-50%); height: var(--stripe-h, 0); background: var(--stripe, transparent); }
-:root[data-skin] .source, :root[data-skin] .lang { color: var(--band-ink); }
-:root[data-skin]:not([data-skin="canucks-night"]) {
-  --t-public: #2563a8; --t-sp: #b45309; --t-hockey: #b42318; --t-adult: #6d3fb5; --t-family: #1f7a4a; --t-figure: #a3247a; --t-youth: #0f766e;
-  --warn: #a84300; --warn-soft: #fde9d9; color-scheme: light;
-}
-/* 1a · Canucks — Home whites: white ice, navy band, green stripe */
-:root[data-skin="canucks-home"] {
-  --bg: #f1f4f8; --surface: #fff; --ink: #0b1e3d; --muted: #56657a; --line: #d3dbe6;
-  --accent: #00205b; --accent-ink: #fff; --accent-soft: #dde5f3; --loc: #00843d;
-  --band: #00205b; --band-ink: #fff; --stripe: #00843d; --stripe-h: 7px;
-  --font-display: "Oswald", "Arial Narrow", sans-serif;
-  --logo-red: #2fc46f; --logo-ink: #fff; --logo-blue: #9ec2ff; --logo-board: #c9d6e8; --logo-puck: #0b1f3f; --logo-puck-top: #26406a; --logo-ice: #f3f7fb;
-}
-:root[data-skin="canucks-home"] .today-btn { background: #00843d; color: #fff; }
-:root[data-skin="canucks-home"] .card { border-radius: 4px; }
-/* 1b · Canucks — Night game: dark arena, green on navy */
-:root[data-skin="canucks-night"] {
-  --bg: #061430; --surface: #0d2147; --ink: #eaf1fa; --muted: #9fb0c8; --line: #1f3a68;
-  --accent: #19b35a; --accent-ink: #03150b; --accent-soft: #0f3d2c; --loc: #8fc3ff;
-  --warn: #f2a46b; --warn-soft: #3a2414;
-  --t-public: #7db4ec; --t-sp: #f0a85a; --t-hockey: #f2827a; --t-adult: #b896f0; --t-family: #6fcf97; --t-figure: #ee8ccd; --t-youth: #5fd0c4;
-  --band: linear-gradient(180deg, #00205b, #041a40); --band-ink: #fff; --stripe: linear-gradient(90deg, #00843d 0 70%, #fff 70% 72%, #00843d 72%); --stripe-h: 5px;
-  --font-display: "Oswald", "Arial Narrow", sans-serif;
-  --logo-red: #2fc46f; --logo-ink: #fff; --logo-blue: #8fc3ff; --logo-board: #c9d6e8; --logo-puck: #0b1f3f; --logo-puck-top: #26406a; --logo-ice: #f3f7fb;
-  color-scheme: dark;
-}
-:root[data-skin="canucks-night"] .card { border-radius: 4px; box-shadow: 0 1px 0 #ffffff0d inset; }
-/* 2a · BC — Government style: navy + gold, plain sans, square-ish */
-:root[data-skin="bc-gov"] {
-  --bg: #f6f7f9; --surface: #fff; --ink: #2d2d2d; --muted: #5b5b5b; --line: #d8d8d8;
-  --accent: #013366; --accent-ink: #fff; --accent-soft: #e3eefb; --loc: #255a90;
-  --band: #013366; --band-ink: #fff; --stripe: #fcba19; --stripe-h: 4px;
-  --font-display: "Noto Sans", system-ui, sans-serif; --font-body: "Noto Sans", system-ui, sans-serif;
-  --logo-red: #fcba19; --logo-ink: #fff; --logo-blue: #a9cbf2; --logo-board: #c9d6e8; --logo-puck: #0b1f3f; --logo-puck-top: #26406a; --logo-ice: #f3f7fb;
-}
-:root[data-skin="bc-gov"] .today-btn { text-transform: none; letter-spacing: 0; font-size: 17px; border-radius: 4px; }
-:root[data-skin="bc-gov"] .panel, :root[data-skin="bc-gov"] .card, :root[data-skin="bc-gov"] .fb { border-radius: 4px; }
-:root[data-skin="bc-gov"] .chip { border-radius: 4px; }
-:root[data-skin="bc-gov"] .time { font-weight: 700; font-size: 20px; }
-/* 2b · BC — Coast & mountains: forest green, ocean blue, mountain skyline */
-:root[data-skin="bc-coast"] {
-  --bg: #eef4f1; --surface: #fff; --ink: #13261f; --muted: #52665d; --line: #cfded6;
-  --accent: #1d5a48; --accent-ink: #fff; --accent-soft: #d9ebe2; --loc: #0d6f8e;
-  --band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0 120V78l90-40 70 28 110-58 90 46 60-22 120 52 100-62 110 50 80-30 120 44 90-36 70 26 100-34V120z' fill='%231d5a48' opacity='.55'/%3E%3Cpath d='M0 120V96l140-30 120 22 160-36 140 34 120-20 160 28 140-24 220 26V120z' fill='%23123f33'/%3E%3C/svg%3E") bottom / 100% 70% no-repeat, linear-gradient(180deg, #0e4a63, #13606f);
-  --band-ink: #fff; --stripe: #e0a526; --stripe-h: 0;
-  --logo-red: #f2b33d; --logo-ink: #fff; --logo-blue: #a6e3e9; --logo-board: #c9d6e8; --logo-puck: #0b1f3f; --logo-puck-top: #26406a; --logo-ice: #f3f7fb;
-}
-:root[data-skin="bc-coast"] header { padding-top: 26px; padding-bottom: 30px; }
-:root[data-skin="bc-coast"] .today-btn { background: #0d6f8e; border-radius: 999px; }
-:root[data-skin="bc-coast"] .panel, :root[data-skin="bc-coast"] .card, :root[data-skin="bc-coast"] .fb { border-radius: 14px; }
-/* 3a · City of Vancouver — Civic: white header, charcoal bar, blue links, green action */
-:root[data-skin="van-civic"] {
-  --bg: #f4f4f4; --surface: #fff; --ink: #222; --muted: #5e5e5e; --line: #d6d6d6;
-  --accent: #0067b1; --accent-ink: #fff; --accent-soft: #e1eef8; --loc: #0067b1;
-  --band: #fff; --band-ink: #222; --stripe: #3d8c40; --stripe-h: 4px;
-  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif; --font-display: "Source Sans 3", "Segoe UI", sans-serif;
-  --logo-red: #d7262e; --logo-ink: #222; --logo-blue: #0067b1; --logo-board: #9aa8ba; --logo-puck: #222; --logo-puck-top: #555; --logo-ice: #f3f7fb;
-}
-:root[data-skin="van-civic"] body { font-size: 16px; }
-:root[data-skin="van-civic"] header { border-top: 8px solid #252525; }
-:root[data-skin="van-civic"] header::before { top: -8px; box-shadow: inset 0 8px 0 #252525; }
-:root[data-skin="van-civic"] .today-btn { background: #3d8c40; text-transform: none; letter-spacing: 0; font-weight: 700; border-radius: 3px; }
-:root[data-skin="van-civic"] .panel, :root[data-skin="van-civic"] .card, :root[data-skin="van-civic"] .fb, :root[data-skin="van-civic"] .chip { border-radius: 3px; }
-:root[data-skin="van-civic"] .time { font-weight: 700; }
-/* 3b · City of Vancouver — Seawall: teal water, cedar-orange action, soft and rounded */
-:root[data-skin="van-seawall"] {
-  --bg: #f1f7f7; --surface: #fff; --ink: #14292c; --muted: #546a6d; --line: #d0e2e3;
-  --accent: #00707c; --accent-ink: #fff; --accent-soft: #d6eeef; --loc: #00707c;
-  --band: linear-gradient(120deg, #005a66, #00808b); --band-ink: #fff; --stripe: repeating-linear-gradient(90deg, #f3f0e6 0 18px, #c9c2ad 18px 20px); --stripe-h: 6px;
-  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
-  --logo-red: #ff9a6b; --logo-ink: #fff; --logo-blue: #a6e3e9; --logo-board: #c9d6e8; --logo-puck: #0b1f3f; --logo-puck-top: #26406a; --logo-ice: #f3f7fb;
-}
-:root[data-skin="van-seawall"] body { font-size: 16px; }
-:root[data-skin="van-seawall"] .today-btn { background: #d9622b; border-radius: 12px; }
-:root[data-skin="van-seawall"] .panel, :root[data-skin="van-seawall"] .card, :root[data-skin="van-seawall"] .fb { border-radius: 16px; }
-:root[data-skin="van-seawall"] .card { border-left-width: 6px; }
 .browse { max-width: 1160px; margin: 30px auto 0; padding: 0 20px; font-size: 14px; color: var(--muted); }
-.browse h2 { font: 700 16px var(--font-display); text-transform: uppercase; letter-spacing: .6px; color: var(--ink); margin: 0 0 4px; }
+.browse h2 { font: 700 16px var(--font-display); letter-spacing: .6px; color: var(--ink); margin: 0 0 4px; }
 .browse p { margin: 8px 0 2px; } .browse ul { display: flex; flex-wrap: wrap; gap: 2px 14px; padding: 0; margin: 0; list-style: none; }
 .browse a { color: var(--accent); }
 </style>
@@ -409,7 +329,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div class="sh-grid" id="shGrid"></div>
   <p class="sh-note" id="shNote"></p>
 </div></dialog>
-<div class="disclaimer" role="note" data-i18n-html="disclaimer"><b>Check the rink's website before you go.</b> <span class="dlong">These times are copied from city and rec-centre schedules, and sessions can be cancelled or changed at short notice (tournaments, holidays, maintenance). Use the link on each listing to confirm.</span><span class="dshort">Times can change at short notice.</span></div>
+<div class="disclaimer" role="note" data-i18n-html="disclaimer"><b>Check the rink's website before you go.</b> <span class="dlong">Times come from city and rink schedules and can change at short notice.</span><span class="dshort">Times can change at short notice.</span></div>
 <main id="main">
   <aside class="panel collapsed" id="panel" aria-label="Search filters" data-i18n-aria="filtersAria">
     <button class="today-btn" id="todayBtn" type="button" data-i18n="todayBtn">Show open ice today</button>
@@ -724,7 +644,7 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const L = {
  en: {
   brandSr: "Open Ice Finder: Lower Mainland drop-in ice times", title: "Drop-in Hockey, Stick & Puck & Public Skating Times – Metro Vancouver | Open Ice Finder",
-  disclaimer: `<b>Check the rink's website before you go.</b> <span class="dlong">These times are copied from city and rec-centre schedules, and sessions can be cancelled or changed at short notice (tournaments, holidays, maintenance). Use the link on each listing to confirm.</span><span class="dshort">Times can change at short notice.</span>`,
+  disclaimer: `<b>Check the rink's website before you go.</b> <span class="dlong">Times come from city and rink schedules and can change at short notice.</span><span class="dshort">Times can change at short notice.</span>`,
   updated: d => `Last updated <b>${d}</b> · refreshed weekly`,
   filtersAria: "Search filters", todayBtn: "Show open ice today", lgType: "Type of ice time", lgGender: "Gender", gAny: "Any", gOpen: "Open to all", gWomen: "Women's",
   lgLoc: "Location", byCity: "By city", nearMe: "Near me", cityLbl: "City", originLbl: "Your city or neighbourhood", originPh: "Start typing, e.g. Vancouver",
@@ -752,6 +672,9 @@ const L = {
   fBusy: "How busy", busy_quiet: "Usually quiet", busy_moderate: "Moderate", busy_busy: "Often busy",
   busySrc_regulars: "reported by regulars", busySrc_counts: "from sign-up counts",
   busyCountsNote: (p, w) => `on average ${p}% full at start time (${w} week${w == 1 ? "" : "s"} of sign-up counts)`,
+  free: "Free", seeRink: "See rink", bkDrop: "Drop-in", bkDoor: "Drop-in · pay at the door", bkWalk: "Walk-in",
+  bkSign: h => `Sign up ${h} h ahead`, bkBook: h => `Book online, up to ${h} h ahead`, bkMon: "Pre-register (opens Mon 6 am, a week ahead)",
+  bkNVRC: "Book through NVRC", bkPre: "Pre-register", bkPre2: "Pre-register 2 days ahead", bkPreRec: "Pre-register recommended",
   privTag: "Private rink · book online", bookOnline: "Book online",
   toTime: "to", directions: "Directions", openMaps: "Open in Google Maps", citySched: c => `${c} schedule`, allAtRink: d => `All ice at this rink on ${d}s`,
   gmapRoute: c => `Driving route from ${c}`, gmapTitle: r => `Google map of ${r}`,
@@ -759,7 +682,7 @@ const L = {
   hintPick: "Pick from the list as you type.", hintFrom: p => `Searching from ${p}.`, hintMiss: "Not on the list yet. Try the nearest city name.",
   mobToggle: "Location, day &amp; more", showN: "Show", moreFilters: "More filters", where: "Where", when: "When", time: "Time", done: "Done",
   fbTitle: "Spot a wrong time or have an idea?",
-  fbText: "Tell us about missing rinks, changed schedules or anything that would make this more useful. We read every message.",
+  fbText: "Let me know about missing rinks, changed schedules or anything that would make this more useful. I read every message.",
   fbBtn: "Send feedback", fbOr: "or email", copy: "Copy", copied: "Copied",
   fbSubject: "Open Ice Finder feedback", fbBody: "Hi! My feedback:\n\n",
   reportLink: "Report a problem with this session",
@@ -771,7 +694,7 @@ const L = {
   shEmailSubj: "Ice time", shGone: "That shared session has already finished. Here's what's coming up this week instead.",
   repSubject: (s, r) => `Problem with a session: ${s} at ${r}`,
   repBody: (s, r, c, d, tm) => `Session: ${s}\nRink: ${r}, ${c}\nWhen: ${d}, ${tm}\n\nWhat's wrong (e.g. cancelled, new time, wrong price):\n\n`,
-  aboutH: "About", aboutP: "Open Ice Finder puts drop-in public skating, hockey, and stick and puck times at community rinks across the Lower Mainland in one place. It's an independent project, built by a local skater.",
+  aboutH: "About", aboutP: "I built this site because I was tired of jumping between a dozen city and rec-centre websites just to find drop-in ice time to work on my skating and hockey. Now it's all in one place. It's an independent project and isn't affiliated with any city or rink.",
   srcH: "Where the times come from", srcP: "Schedules are collected every week from these official city and recreation websites, plus privately run rinks that publish drop-in times:",
   infoH: "The fine print",
   discH: "Disclaimer",
@@ -787,7 +710,7 @@ const L = {
  },
  fr: {
   brandSr: "Open Ice Finder : glace libre dans le Lower Mainland", title: "Hockey libre, bâton et rondelle et patin libre – Grand Vancouver | Open Ice Finder",
-  disclaimer: `<b>Vérifiez le site de la patinoire avant d'y aller.</b> <span class="dlong">Ces heures proviennent des horaires des villes et des centres récréatifs. Les séances peuvent être annulées ou modifiées à court préavis (tournois, congés, entretien). Utilisez le lien de chaque séance pour confirmer.</span><span class="dshort">Les heures peuvent changer à court préavis.</span>`,
+  disclaimer: `<b>Vérifiez le site de la patinoire avant d'y aller.</b> <span class="dlong">Les heures proviennent des horaires des villes et des patinoires et peuvent changer à court préavis.</span><span class="dshort">Les heures peuvent changer à court préavis.</span>`,
   updated: d => `Mis à jour le <b>${d}</b> · actualisé chaque semaine`,
   filtersAria: "Filtres de recherche", todayBtn: "Voir la glace libre aujourd'hui", lgType: "Type de séance", lgGender: "Genre", gAny: "Tous", gOpen: "Ouvert à tous", gWomen: "Femmes",
   lgLoc: "Lieu", byCity: "Par ville", nearMe: "Près de moi", cityLbl: "Ville", originLbl: "Votre ville ou quartier", originPh: "Commencez à taper, p. ex. Vancouver",
@@ -815,6 +738,9 @@ const L = {
   fBusy: "Achalandage", busy_quiet: "Généralement calme", busy_moderate: "Modéré", busy_busy: "Souvent achalandé",
   busySrc_regulars: "selon des habitués", busySrc_counts: "selon les inscriptions",
   busyCountsNote: (p, w) => `en moyenne ${p} % plein au début (${w} semaine${w > 1 ? "s" : ""} d'inscriptions)`,
+  free: "Gratuit", seeRink: "Voir la patinoire", bkDrop: "Accès libre", bkDoor: "Accès libre · paiement sur place", bkWalk: "Sans réservation",
+  bkSign: h => `Inscription ${h} h à l'avance`, bkBook: h => `Réservation en ligne, jusqu'à ${h} h à l'avance`, bkMon: "Préinscription (ouvre le lundi 6 h, une semaine avant)",
+  bkNVRC: "Réserver auprès de NVRC", bkPre: "Préinscription", bkPre2: "Préinscription 2 jours avant", bkPreRec: "Préinscription recommandée",
   privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne",
   toTime: "à", directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", citySched: c => `Horaire de ${c}`, allAtRink: d => `Toutes les séances à cette patinoire le ${d}`,
   gmapRoute: c => `Itinéraire en voiture depuis ${c}`, gmapTitle: r => `Carte Google de ${r}`,
@@ -822,7 +748,7 @@ const L = {
   hintPick: "Choisissez dans la liste en tapant.", hintFrom: p => `Recherche à partir de ${p}.`, hintMiss: "Pas encore dans la liste. Essayez le nom de la ville la plus proche.",
   mobToggle: "Lieu, jour et plus", showN: "Voir", moreFilters: "Plus de filtres", where: "Où", when: "Quand", time: "Heure", done: "Terminé",
   fbTitle: "Une heure erronée ou une idée?",
-  fbText: "Signalez-nous les patinoires manquantes, les horaires modifiés ou tout ce qui rendrait cet outil plus utile. Nous lisons tous les messages.",
+  fbText: "Signalez-moi les patinoires manquantes, les horaires modifiés ou tout ce qui rendrait cet outil plus utile. Je lis tous les messages.",
   fbBtn: "Envoyer un commentaire", fbOr: "ou écrivez à", copy: "Copier", copied: "Copié",
   fbSubject: "Commentaire sur Open Ice Finder", fbBody: "Bonjour! Mon commentaire :\n\n",
   reportLink: "Signaler un problème avec cette séance",
@@ -834,7 +760,7 @@ const L = {
   shEmailSubj: "Séance sur glace", shGone: "Cette séance partagée est déjà terminée. Voici ce qui s'en vient cette semaine.",
   repSubject: (s, r) => `Problème avec une séance : ${s} à ${r}`,
   repBody: (s, r, c, d, tm) => `Séance : ${s}\nPatinoire : ${r}, ${c}\nQuand : ${d}, ${tm}\n\nLe problème (p. ex. annulée, nouvelle heure, mauvais prix) :\n\n`,
-  aboutH: "À propos", aboutP: "Open Ice Finder réunit en un seul endroit les heures de patinage public, de hockey libre et de bâton et rondelle des patinoires communautaires du Lower Mainland. C'est un projet indépendant, créé par un patineur de la région.",
+  aboutH: "À propos", aboutP: "J'ai créé ce site parce que j'en avais assez de passer d'un site municipal ou récréatif à l'autre pour trouver des heures de glace libre où travailler mon patinage et mon hockey. Maintenant, tout est au même endroit. C'est un projet indépendant, sans lien avec une ville ou une patinoire.",
   srcH: "D'où viennent les heures", srcP: "Les horaires sont recueillis chaque semaine sur ces sites officiels des villes et des services récréatifs, ainsi que sur ceux de patinoires privées qui publient leurs séances libres :",
   infoH: "Renseignements",
   discH: "Avis de non-responsabilité",
@@ -897,6 +823,29 @@ function save() { try { localStorage.setItem("iceFinder", JSON.stringify({ types
 /* Every visit starts unfiltered: today, all rinks. Only the typed place and radius are remembered, to pre-fill "Near me" when the user picks it. */
 function restore() { try { const s = JSON.parse(localStorage.getItem("iceFinder") || "null"); if (s) { if (matchPlace(s.origin)) state.origin = s.origin; if (s.radius >= 2 && s.radius <= 60) state.radius = s.radius; } } catch {} }
 
+/* ---------- short card text (full wording stays in the details) ---------- */
+const sameName = r => r.session.trim().toLowerCase() === r.type.toLowerCase();
+const costShort = c => { const m = (c || "").match(/\$\d+(?:\.\d\d)?/); return m ? m[0] : /free/i.test(c) ? t("free") : t("seeRink"); };
+const SKATE = ["Public Skate", "Adult Public Skate", "Family Skate", "Youth Skate"];
+function bookShort(r) {
+  const b = r.booking || "", skate = SKATE.includes(r.type), n = r.notes || "";
+  const flagged = /^(reserve|pre-register)/i.test(n);
+  if (r.priv) return t("privTag");
+  if (b.startsWith("Hockey/stick & puck/figure")) return skate ? t("bkDoor") : t("bkSign", 72);
+  if (b.startsWith("Skates walk-in only")) return skate || r.type === "Figure Skating" ? t("bkWalk") : t("bkBook", 72);
+  if (b.startsWith("Public skate drop-in")) return skate || (r.type === "Drop-in Hockey" && b.includes("& puck &")) ? t("bkDrop") : t("bkMon");
+  if (b.startsWith("Drop-in; hockey & some skates via NVRC")) return r.type === "Drop-in Hockey" || flagged ? t("bkNVRC") : t("bkDrop");
+  if (b.startsWith("Drop-in; some sessions bookable")) return flagged ? t("bkBook", 72) : t("bkDrop");
+  if (b.startsWith("Drop-in; 'Reserve'")) return flagged ? t("bkBook", 48) : t("bkDrop");
+  if (b.startsWith("Drop-in; limited-capacity")) return flagged ? t("bkBook", 72) : t("bkDrop");
+  if (b.startsWith("Drop-in; * sessions")) return flagged ? t("bkPre") : t("bkDrop");
+  if (b.startsWith("Pre-register 2 days")) return t("bkPre2");
+  if (b.startsWith("Pre-register online recommended")) return t("bkPreRec");
+  if (/^drop-in/i.test(b)) return t("bkDrop");
+  return b;
+}
+const cardNote = r => (r.notes || "").replace(/^(reserve|pre-register)\s*;?\s*/i, "").replace(/^cancelled .*/i, "");
+
 /* ---------- results ---------- */
 const isBrowse = () => state.week && !state.todayMode;
 /* Until a location is picked the list covers the whole week; picking one narrows to a single day unless the user chose the day view themselves. */
@@ -947,8 +896,6 @@ function render() {
   const stale = [...new Set(rows.filter(r => VALID_TO[r.city] && r.iso > VALID_TO[r.city]).map(r => r.city))];
   if (stale.length) notes.push(t("staleN", stale.join(", "), browse));
   if (last >= "2026-12-19" && first <= "2027-01-04") notes.push(t("holidayN"));
-  const weekly = [...new Set(rows.filter(r => r.priv || WEEKLY.includes(r.city)).map(r => r.priv ? r.rink : r.city))];
-  if (weekly.length && (first < "2026-11-14" || last > "2026-11-22")) notes.push(t("weeklyN", weekly.join(", ")));
   if (sharedGone) { notes.unshift(t("shGone")); sharedGone = false; }
   $("notices").innerHTML = notes.map(n => `<div class="notice">${esc(n)}</div>`).join("");
 
@@ -969,17 +916,16 @@ function render() {
     return `<article class="card${r.cancelled ? " cancelled" : ""}" style="--c:var(${color})" data-id="${r.id}" tabindex="0" role="button" aria-expanded="${isOpen}">
       <div class="time">${fmt(r.start)}<small>${t("toTime")} ${fmt(r.end)}</small></div>
       <div class="what">
-        <span class="pill">${esc(typeLbl(r.type))}</span>
-        <span class="name">${esc(r.session)}</span>
+        ${sameName(r) ? "" : `<span class="pill">${esc(typeLbl(r.type))}</span>`}
+        <span class="name">${esc(sameName(r) ? typeLbl(r.type) : r.session)}</span>
         <span class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span><b>${esc(r.rink)}</b> · ${esc(r.city)}</span>${r.ages ? `<span class="ages">· ${esc(r.ages)}</span>` : ""}</span>
-        ${GENDER_TAG[r.gender] ? `<span class="tag gender">${GENDER_TAG[r.gender]}</span>` : ""}
-        ${r.priv ? `<span class="tag priv">${esc(t("privTag"))}</span>` : r.booking ? `<span class="meta">${esc(r.booking)}</span>` : ""}
-        ${r.notes ? `<span class="meta">${esc(r.notes)}</span>` : ""}
-        ${r.cancelled ? `<span class="tag">${t("cancelled")}</span>` : running ? `<span class="tag" style="background:var(--accent-soft);color:var(--accent)">${t("onNow")}</span>` : ""}
+        ${bookShort(r) ? `<span class="meta">${esc(bookShort(r))}</span>` : ""}
+        ${cardNote(r) ? `<span class="meta">${esc(cardNote(r))}</span>` : ""}
+        ${r.cancelled ? `<span class="tag">${t("cancelled")}</span>` : GENDER_TAG[r.gender] ? `<span class="tag gender">${GENDER_TAG[r.gender]}</span>` : running ? `<span class="tag" style="background:var(--accent-soft);color:var(--accent)">${t("onNow")}</span>` : ""}
       </div>
       <div class="side">
         ${state.mode === "near" && r.dist != null ? `<span class="km">${r.dist.toFixed(1)} km</span>` : ""}
-        <span class="cost">${esc(r.cost)}</span>
+        <span class="cost" title="${esc(r.cost)}">${esc(costShort(r.cost))}</span>
         ${busyOf(r) ? `<span class="busy busy-${busyOf(r).level}"><i></i>${esc(t("busy_" + busyOf(r).level))}</span>` : ""}
         <span class="more"><i class="chev"></i>${isOpen ? t("less") : esc(t("more"))}</span>
       </div>
@@ -1027,19 +973,6 @@ function applyLogo(k) {
 }
 if ($("logoNav")) for (const [k, [label]] of Object.entries(LOGOS)) { const b = document.createElement("button"); b.type = "button"; b.dataset.logo = k; b.textContent = label; b.onclick = () => applyLogo(k); $("logoNav").append(b); }
 applyLogo("pin-redblue");
-
-/* ---------- themes (preview only) ---------- */
-const SKINS = { "": "Original", "canucks-home": "Canucks · home", "canucks-night": "Canucks · night game",
-  "bc-gov": "BC · government", "bc-coast": "BC · coast & mountains", "van-civic": "Vancouver · civic", "van-seawall": "Vancouver · seawall" };
-function applySkin(k) {
-  if (!(k in SKINS)) k = ""; try { localStorage.setItem("iceSkin", k); } catch {}
-  if (k) document.documentElement.dataset.skin = k; else delete document.documentElement.dataset.skin;
-  document.querySelectorAll("[data-skin-btn]").forEach(b => b.setAttribute("aria-pressed", b.dataset.skinBtn === k));
-}
-if ($("skinNav")) {
-  for (const [k, label] of Object.entries(SKINS)) { const b = document.createElement("button"); b.type = "button"; b.dataset.skinBtn = k; b.textContent = label; b.onclick = () => applySkin(k); $("skinNav").append(b); }
-  let saved = ""; try { saved = localStorage.getItem("iceSkin") || ""; } catch {} applySkin(saved);
-}
 
 /* ---------- layouts (preview) ---------- */
 const PARTS = ["todayBtn", "fsType", "fsGender", "fsLoc", "fsDay", "fsTime", "resetBtn"].reduce((o, id) => (o[id] = $(id), o), {});
@@ -1294,6 +1227,7 @@ function applyLang() {
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
   document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
   $("srctext").innerHTML = t("updated", updatedDate());
+  { const m = UPDATED_RAW.match(/([A-Z][a-z]{2}) (\d{1,2}), (\d{4})/); if (m) { const age = (Date.now() - new Date(`${m[1]} ${m[2]}, ${m[3]}`)) / 864e5; $("srcdot").classList.toggle("live", age <= 9); $("srcdot").classList.toggle("old", age > 9); } }
   buildFooter();
   const other = LANG === "fr" ? ["en", "English", "EN"] : ["fr", "Français", "FR"];
   const lb = $("langBtn"); lb.lang = other[0]; lb.title = other[1];
