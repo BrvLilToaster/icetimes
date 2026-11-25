@@ -77,6 +77,14 @@ td.t{white-space:nowrap;font-weight:600}.ty{font-size:12px;font-weight:600;text-
 h3{font-size:16px;margin:18px 0 6px}.links{display:flex;flex-wrap:wrap;gap:6px 14px;padding:0;list-style:none;font-size:15px}
 footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 @media(max-width:640px){th.hide,td.hide{display:none}}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 4px}.chip{font-size:14px;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+.htb{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px 18px 14px;margin:12px 0;scroll-margin-top:12px}
+.htb h2{font:600 20px/1.2 "IBM Plex Sans","Segoe UI",system-ui,sans-serif;text-transform:none;letter-spacing:0;margin:14px 0 6px;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.htb p{margin:6px 0}.htb ul{margin:6px 0 10px;padding-left:20px}.htb li{margin:3px 0}
+.htb:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.need{font:600 12px/1 "IBM Plex Sans",system-ui,sans-serif;border-radius:4px;padding:4px 7px}
+.need-yes{background:#fde9d9;color:#a84300}.need-some{background:#e8f0fb;color:#0b5cad}.need-no{background:#e3f4ea;color:#1f7a4a}
+.htb-links{display:flex;flex-wrap:wrap;gap:8px}.cta.sm{font:600 14px/1 "IBM Plex Sans",system-ui,sans-serif;text-transform:none;letter-spacing:0;padding:10px 14px;margin:4px 0}
 """
 
 PIN = '<svg viewBox="0 0 26 34" aria-hidden="true"><path d="M13 1C6.4 1 1 6.3 1 12.9 1 22 13 33 13 33s12-11 12-20.1C25 6.3 19.6 1 13 1z" fill="#d7262e"/><ellipse cx="13" cy="12.5" rx="6.5" ry="3.4" fill="#0b2d6b"/><ellipse cx="13" cy="11.3" rx="6.5" ry="3.4" fill="#fff"/></svg>'
@@ -175,6 +183,80 @@ def links_block(cities, types_present):
     return c, t
 
 
+# ---- "How to book" page: one short section per city. Checked against each city's site, Nov 2026. ----
+SURREY_HOCKEY = "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?calendarId=7333623a-774c-4e63-aaac-b85a2cfbd17d&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False"
+SURREY_SKATE = "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?calendarId=5b599b6d-d54f-43c1-b86a-e962d9bf107b&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False"
+# (id, name, need: "yes" | "some" | "no", one-line summary, steps, links [(label, url)], phone)
+HOW_TO_BOOK = [
+    ("surrey", "Surrey", "some", "Hockey, stick & puck and figure skating: sign up 72 hours ahead. Public skating: no sign-up, pay at the door.",
+     ["Sign-up opens exactly 72 hours before the session starts.",
+      "You need a free City of Surrey recreation account to register.",
+      "Hockey and stick & puck are on the Drop In Hockey list; figure skating is on the Drop In Skating list."],
+     [("Drop In Hockey (hockey, stick & puck)", SURREY_HOCKEY), ("Drop In Skating (figure skating)", SURREY_SKATE)], "604-501-5100"),
+    ("richmond", "Richmond", "some", "Public skates are drop-in. Stick & puck, hockey and figure skating are pre-registered.",
+     ["Online booking opens at 6:00 am on Monday, one week before the session (phone from 8:30 am).",
+      "You pay when you book. Drop-ins are welcome if there's space left.",
+      "On the arenas page, use the “Registered Visits” link for Richmond Ice Centre or Minoru Arenas."],
+     [("Richmond arena schedules & Registered Visits", "https://www.richmond.ca/parks-recreation/about/arenas/fees.htm")], "604-276-4300"),
+    ("burnaby", "Burnaby", "some", "Most skates are drop-in. Sessions marked “Reserve” can be booked ahead.",
+     ["Reserve sessions open 48 hours ahead for Burnaby residents and 24 hours ahead for everyone else.",
+      "Book on WebReg with a free Burnaby account."],
+     [("Burnaby WebReg", "https://www.burnaby.ca/webreg")], "Bill Copeland 604-297-4521 · Kensington 604-297-4535"),
+    ("port-coquitlam", "Port Coquitlam", "yes", "Drop-in skates and hockey are pre-registered.",
+     ["Booking opens 48 hours ahead: 8 am for Port Coquitlam residents, 10 am for everyone else.",
+      "You need an account. Online booking closes 30 minutes before the start.",
+      "Cancel at least 24 hours ahead, or a no-show is charged."],
+     [("Port Coquitlam registration", "https://www.portcoquitlam.ca/register")], "604-927-7529"),
+    ("coquitlam", "Coquitlam", "some", "Sessions marked pre-register need a spot booked; the rest are drop-in.",
+     ["Booking opens 48 hours before the session.",
+      "In the registration system, look under “Drop In (Pre-registered)”."],
+     [("Coquitlam drop-in booking", "https://www.coquitlam.ca/979")], ""),
+    ("port-moody", "Port Moody", "some", "Pre-registration is recommended; you can drop in if there's space.",
+     ["Book on the city's drop-in calendar with a free account."],
+     [("Port Moody drop-in calendar", "https://cityofportmoody.perfectmind.com/Contacts/BookMe4BookingPages/Classes?calendarId=da287199-756a-422e-8fbc-b2e5063b77f8&widgetId=15f6af07-39c5-473e-b053-96653f77a406&embed=False")], "604-469-4556"),
+    ("delta", "Delta", "some", "Hockey and stick & puck: book ahead. Public skates: usually walk-in.",
+     ["Drop-ins open for pre-registration 72 hours before the start.",
+      "You need a Delta recreation account (free). North Delta Rec Centre asks everyone to register ahead, so book if you can."],
+     [("Delta drop-in activities", "https://cityofdelta.perfectmind.com/24140/Clients/BookMe4BookingPages/Classes?calendarId=c9b7ca71-56dc-43e3-aec7-d976239a5660&widgetId=0da93182-93fb-4314-87bd-a8ba4ee9a4c9&embed=False")], "604-952-3000"),
+    ("new-westminster", "New Westminster", "some", "Most skates are drop-in. Limited-capacity sessions can be booked ahead.",
+     ["Booking opens 72 hours ahead for New Westminster residents and 48 hours ahead for everyone.",
+      "You can withdraw up to 3 hours before without a charge."],
+     [("New Westminster registration", "https://www.newwestcity.ca/register")], ""),
+    ("north-vancouver", "North Vancouver (NVRC)", "some", "Public skates are drop-in. Drop-in hockey is booked as a “book-a-visit” session.",
+     ["Sports sessions open for booking at 7 am on Tuesday the week before.",
+      "Book with an NVRC account, and cancel if you can't make it so someone else gets the spot."],
+     [("NVRC drop-in schedules", "https://www.nvrc.ca/drop-in-schedules")], "604-987-7529"),
+    ("vancouver", "Vancouver", "no", "Most sessions are drop-in: just show up and pay at the rink (Flexipass accepted).",
+     ["Some sessions can be reserved online up to 3 days ahead in the “Public Skating & Ice Hockey” calendar."],
+     [("Public Skating & Ice Hockey calendar", "https://anc.ca.apm.activecommunities.com/vancouver/calendars"), ("Vancouver ice rinks", "https://vancouver.ca/parks-recreation-culture/ice-rinks.aspx")], ""),
+    ("maple-ridge", "Maple Ridge", "no", "Drop-in only, no booking. Pay at Planet Ice.",
+     [], [("Maple Ridge public skating", "https://www.mapleridge.ca/node/1958")], ""),
+    ("canlan", "Canlan rinks (private)", "yes", "Scotia Barn, Langley Twin Rinks and North Shore: book and pay online.",
+     ["You need a Canlan account. Spots are limited and popular times fill up."],
+     [("Scotia Barn (Burnaby)", "https://www.canlansports.com/drop-ins/?facility=1"), ("Langley Twin Rinks", "https://www.canlansports.com/drop-ins/?facility=2"), ("North Shore", "https://www.canlansports.com/drop-ins/?facility=8")], ""),
+]
+HTB_IDS = {x[0] for x in HOW_TO_BOOK}
+NEED = {"yes": "Booking needed", "some": "Some sessions", "no": "Just show up"}
+
+
+def how_to_book_body():
+    toc = "".join(f'<a class="chip need-{n}" href="#{i}">{e(name)}</a>' for i, name, n, *_ in HOW_TO_BOOK)
+    secs = []
+    for i, name, n, summary, steps, links, phone in HOW_TO_BOOK:
+        st = "".join(f"<li>{e(s)}</li>" for s in steps)
+        ln = "".join(f'<a class="cta sm" href="{e(u)}" target="_blank" rel="noopener">{e(l)} ↗</a>' for l, u in links)
+        ph = f'<p class="muted">Or call {e(phone)}.</p>' if phone else ""
+        secs.append(f'<section class="htb" id="{i}"><h2>{e(name)} <span class="need need-{n}">{NEED[n]}</span></h2>'
+                    f'<p>{e(summary)}</p>{f"<ul>{st}</ul>" if st else ""}<div class="htb-links">{ln}</div>{ph}</section>')
+    tips = ('<ul><li><b>Make your account first.</b> Each city has its own free account, and setting one up takes a few minutes, so do it before booking opens.</li>'
+            '<li><b>Set a reminder</b> for when booking opens. Popular stick &amp; puck and hockey times can fill within minutes.</li>'
+            '<li><b>Cancel if you can\'t go.</b> Some cities charge for no-shows.</li></ul>')
+    return (f'<p class="lead">Many drop-in skates are walk-in, but most stick &amp; puck and drop-in hockey needs a spot booked ahead. '
+            f'Here\'s how each city does it. In the finder, sessions that need booking have a <b>Book</b> button.</p>'
+            f'<nav class="toc" aria-label="Cities">{toc}</nav><h2>Before you book</h2>{tips}{"".join(secs)}'
+            f'<p class="muted">Booking rules checked November 2026. Cities change them now and then, so trust the city\'s page if it says something different.</p>')
+
+
 def main():
     idx, rows, updated = load()
     cities = sorted({r["city"] for r in rows})
@@ -196,6 +278,7 @@ def main():
         body = (f'<p class="lead">This week\'s public skating, stick &amp; puck, drop-in hockey and other drop-in ice times at '
                 f'{nr} rink{"s" if nr != 1 else ""} in {e(city)}: <b>{len(rs)} sessions</b>. {when}, collected from official schedules.</p>'
                 f'<a class="cta" href="/?city={e(city)}&amp;week=1">Open the finder for {e(city)} →</a>'
+                f'<p class="muted"><a href="/how-to-book/#{slug(city) if slug(city) in HTB_IDS else "canlan"}">How booking works in {e(city)} →</a></p>'
                 f'<p class="muted">The finder adds filters for time and type, distance from where you are, a map for each session and directions.</p>'
                 f'<h2>Rinks in {e(city)}</h2>{rink_list(rs)}<h2>This week\'s ice times in {e(city)}</h2>{schedule_tables(rs, False)}{more}')
         ld = {"@context": "https://schema.org", "@graph": [
@@ -231,6 +314,17 @@ def main():
         os.makedirs(os.path.join(ROOT, sl), exist_ok=True)
         open(os.path.join(ROOT, sl, "index.html"), "w", encoding="utf-8").write(page(f"{sl}/", title, desc, h1, crumbs(noun), body, ld))
         paths.append(f"{sl}/")
+
+    # how-to-book guide
+    hb_title = "How to Book Drop-in Hockey, Stick & Puck and Skating in Metro Vancouver | Open Ice Finder"
+    hb_desc = "Which Lower Mainland rinks need you to book drop-in ice, when booking opens in each city, and direct links to each booking page."
+    hb_ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Open Ice Finder", "item": f"{SITE}/"},
+        {"@type": "ListItem", "position": 2, "name": "How to book", "item": f"{SITE}/how-to-book/"}]}
+    os.makedirs(os.path.join(ROOT, "how-to-book"), exist_ok=True)
+    open(os.path.join(ROOT, "how-to-book", "index.html"), "w", encoding="utf-8").write(
+        page("how-to-book/", hb_title, hb_desc, "How to book drop-in ice", crumbs("How to book"), how_to_book_body(), hb_ld))
+    paths.append("how-to-book/")
 
     # remove pages for cities/types that dropped out of the data
     keep = {p.strip("/") for p in paths}

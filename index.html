@@ -139,6 +139,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .book { display: inline-flex; align-items: center; gap: 3px; padding: 5px 10px; border-radius: 6px; background: var(--accent); color: var(--accent-ink) !important; font: 600 13px var(--font-body); text-decoration: none; white-space: nowrap; }
 .book svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .book:hover { filter: brightness(1.08); }
+.htb-link { white-space: nowrap; color: var(--accent); }
 .side a { color: var(--accent); }
 .card.cancelled { opacity: .6; }
 /* ---- footer ---- */
@@ -608,7 +609,7 @@ function detailsHTML(r, date) {
         ${fact(t("fRink"), esc(r.rink))}
         ${fact(t("fAddress"), esc(r.address))}
         ${fact(t("fCost"), esc(r.cost))}
-        ${fact(t("fBooking"), esc(r.booking))}
+        ${fact(t("fBooking"), esc(r.booking) + ` <a class="htb-link" data-track="how_to_book" href="/how-to-book/#${htbId(r)}">${esc(t("htbCity", r.priv ? "Canlan" : r.city))}</a>`)}
         ${busyOf(r) ? fact(t("fBusy"), esc(t("busy_" + busyOf(r).level) + " · " + (busyOf(r).note || t("busySrc_" + busyOf(r).src)))) : ""}
         ${fact(t("fNotes"), esc(r.notes))}
       </dl>
@@ -678,7 +679,7 @@ const L = {
   free: "Free", seeRink: "See rink", bkDrop: "Drop-in", bkDoor: "Drop-in · pay at the door", bkWalk: "Walk-in",
   bkSign: h => `Sign up ${h} h ahead`, bkBook: h => `Book online, up to ${h} h ahead`, bkMon: "Pre-register (opens Mon 6 am, a week ahead)",
   bkNVRC: "Book through NVRC", bkPre: "Pre-register", bkPre2: "Pre-register 2 days ahead", bkPreRec: "Pre-register recommended",
-  privTag: "Private rink · book online", bookOnline: "Book online", bookBtn: "Book", bookAria: (s, r) => `Book ${s} at ${r} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`,
+  privTag: "Private rink · book online", bookOnline: "Book online", bookBtn: "Book", bookAria: (s, r) => `Book ${s} at ${r} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`, htbCity: c => `How booking works in ${c}`, htbAll: "How to book: rules and links for each city",
   toTime: "to", directions: "Directions", openMaps: "Open in Google Maps", citySched: c => `${c} schedule`, allAtRink: d => `All ice at this rink on ${d}s`,
   gmapRoute: c => `Driving route from ${c}`, gmapTitle: r => `Google map of ${r}`,
   mapCap: c => `Centred on ${c} · grey dots are other rinks · map ©`, osm: "OpenStreetMap contributors", mapAria: (c, r, d) => `Street map centred on ${c} showing ${r}, ${d} away`,
@@ -744,7 +745,7 @@ const L = {
   free: "Gratuit", seeRink: "Voir la patinoire", bkDrop: "Accès libre", bkDoor: "Accès libre · paiement sur place", bkWalk: "Sans réservation",
   bkSign: h => `Inscription ${h} h à l'avance`, bkBook: h => `Réservation en ligne, jusqu'à ${h} h à l'avance`, bkMon: "Préinscription (ouvre le lundi 6 h, une semaine avant)",
   bkNVRC: "Réserver auprès de NVRC", bkPre: "Préinscription", bkPre2: "Préinscription 2 jours avant", bkPreRec: "Préinscription recommandée",
-  privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne", bookBtn: "Réserver", bookAria: (s, r) => `Réserver ${s} à ${r} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`,
+  privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne", bookBtn: "Réserver", bookAria: (s, r) => `Réserver ${s} à ${r} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`, htbCity: c => `Comment réserver à ${c}`, htbAll: "Comment réserver : règles et liens par ville",
   toTime: "à", directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", citySched: c => `Horaire de ${c}`, allAtRink: d => `Toutes les séances à cette patinoire le ${d}`,
   gmapRoute: c => `Itinéraire en voiture depuis ${c}`, gmapTitle: r => `Carte Google de ${r}`,
   mapCap: c => `Centrée sur ${c} · points gris : autres patinoires · carte ©`, osm: "contributeurs d'OpenStreetMap", mapAria: (c, r, d) => `Carte centrée sur ${c} montrant ${r}, à ${d}`,
@@ -866,6 +867,8 @@ function bookRule(r) {
 function bookShort(r) { const [k, a] = bookRule(r); return k ? t(k, a) : a; }
 const NO_BOOK = ["bkDrop", "bkDoor", "bkWalk", null];
 const bookLink = r => NO_BOOK.includes(bookRule(r)[0]) ? "" : r.priv ? r.link : (u => typeof u === "function" ? u(r) : u || "")(BOOK_LINKS[r.city]);
+const HTB_IDS = ["surrey", "richmond", "burnaby", "port-coquitlam", "coquitlam", "port-moody", "delta", "new-westminster", "north-vancouver", "vancouver", "maple-ridge"];
+const htbId = r => { const s = r.city.toLowerCase().replace(/[^a-z0-9]+/g, "-"); return r.priv || !HTB_IDS.includes(s) ? "canlan" : s; };
 const cardNote = r => (r.notes || "").replace(/^(reserve|pre-register)\s*;?\s*/i, "").replace(/^cancelled .*/i, "");
 
 /* ---------- results ---------- */
@@ -1145,7 +1148,7 @@ function buildFooter() {
       <h3 style="margin-top:14px">${esc(t("creditsH"))}</h3><p>${esc(t("creditsP"))} <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">openstreetmap.org/copyright</a></p></div>
     <div><h3>${esc(t("srcH"))}</h3><p>${esc(t("srcP"))}</p>
       <ul class="cities">${cities.map(c => `<li><a href="${CITY_LINKS[c]}" target="_blank" rel="noopener">${esc(c)}</a></li>`).join("")}${Object.entries(PRIVATE_LINKS).map(([n, u]) => `<li><a href="${u}" target="_blank" rel="noopener">${esc(n)}</a></li>`).join("")}</ul></div>
-    <div><h3>${esc(t("infoH"))}</h3>${det("discH", "discP")}${det("privH", "privP")}${det("termsH", "termsP")}</div>
+    <div><h3>${esc(t("infoH"))}</h3><p><a href="/how-to-book/" data-track="how_to_book">${esc(t("htbAll"))}</a></p>${det("discH", "discP")}${det("privH", "privP")}${det("termsH", "termsP")}</div>
   </div>
   <div class="fbase"><span>${esc(t("copyright", new Date().getFullYear()))}</span><span>${esc(t("notAffiliated"))}</span></div>`;
   $("copyMail").onclick = async e => { try { await navigator.clipboard.writeText(FEEDBACK_EMAIL); e.target.textContent = t("copied"); setTimeout(() => e.target.textContent = t("copy"), 1600); } catch {} };
