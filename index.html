@@ -136,6 +136,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .side { text-align: right; font-size: 13px; display: grid; gap: 4px; justify-items: end; }
 .km { font: 700 18px var(--font-display); }
 .cost { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.book { display: inline-flex; align-items: center; gap: 3px; padding: 5px 10px; border-radius: 6px; background: var(--accent); color: var(--accent-ink) !important; font: 600 13px var(--font-body); text-decoration: none; white-space: nowrap; }
+.book svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.book:hover { filter: brightness(1.08); }
 .side a { color: var(--accent); }
 .card.cancelled { opacity: .6; }
 /* ---- footer ---- */
@@ -612,7 +615,7 @@ function detailsHTML(r, date) {
       <div class="btns">
         <a class="btn primary" data-track="directions" href="${gmaps(r, true)}" target="_blank" rel="noopener">${t("directions")}</a>
         <a class="btn" data-track="google_maps" href="${gmaps(r, false)}" target="_blank" rel="noopener">${t("openMaps")}</a>
-        ${r.priv && r.link ? `<a class="btn" data-track="book_online" href="${r.link}" target="_blank" rel="noopener">${esc(t("bookOnline"))}</a>` : link ? `<a class="btn" data-track="city_schedule" href="${link}" target="_blank" rel="noopener">${esc(t("citySched", r.city))}</a>` : ""}
+        ${bookLink(r) ? `<a class="btn" data-track="book_online" href="${bookLink(r)}" target="_blank" rel="noopener">${esc(t(r.priv ? "bookOnline" : "bookCity", r.city))}</a>` : ""}${link && !(r.priv && r.link) ? `<a class="btn" data-track="city_schedule" href="${link}" target="_blank" rel="noopener">${esc(t("citySched", r.city))}</a>` : ""}
         <button type="button" class="btn" data-share="${r.id}|${isoOf(date)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>${esc(t("shareBtn"))}</button>
       </div>
       <a class="report" data-track="report_problem" href="${reportMail(r, date)}">${t("reportLink")}</a>
@@ -675,7 +678,7 @@ const L = {
   free: "Free", seeRink: "See rink", bkDrop: "Drop-in", bkDoor: "Drop-in · pay at the door", bkWalk: "Walk-in",
   bkSign: h => `Sign up ${h} h ahead`, bkBook: h => `Book online, up to ${h} h ahead`, bkMon: "Pre-register (opens Mon 6 am, a week ahead)",
   bkNVRC: "Book through NVRC", bkPre: "Pre-register", bkPre2: "Pre-register 2 days ahead", bkPreRec: "Pre-register recommended",
-  privTag: "Private rink · book online", bookOnline: "Book online",
+  privTag: "Private rink · book online", bookOnline: "Book online", bookBtn: "Book", bookAria: (s, r) => `Book ${s} at ${r} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`,
   toTime: "to", directions: "Directions", openMaps: "Open in Google Maps", citySched: c => `${c} schedule`, allAtRink: d => `All ice at this rink on ${d}s`,
   gmapRoute: c => `Driving route from ${c}`, gmapTitle: r => `Google map of ${r}`,
   mapCap: c => `Centred on ${c} · grey dots are other rinks · map ©`, osm: "OpenStreetMap contributors", mapAria: (c, r, d) => `Street map centred on ${c} showing ${r}, ${d} away`,
@@ -741,7 +744,7 @@ const L = {
   free: "Gratuit", seeRink: "Voir la patinoire", bkDrop: "Accès libre", bkDoor: "Accès libre · paiement sur place", bkWalk: "Sans réservation",
   bkSign: h => `Inscription ${h} h à l'avance`, bkBook: h => `Réservation en ligne, jusqu'à ${h} h à l'avance`, bkMon: "Préinscription (ouvre le lundi 6 h, une semaine avant)",
   bkNVRC: "Réserver auprès de NVRC", bkPre: "Préinscription", bkPre2: "Préinscription 2 jours avant", bkPreRec: "Préinscription recommandée",
-  privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne",
+  privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne", bookBtn: "Réserver", bookAria: (s, r) => `Réserver ${s} à ${r} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`,
   toTime: "à", directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", citySched: c => `Horaire de ${c}`, allAtRink: d => `Toutes les séances à cette patinoire le ${d}`,
   gmapRoute: c => `Itinéraire en voiture depuis ${c}`, gmapTitle: r => `Carte Google de ${r}`,
   mapCap: c => `Centrée sur ${c} · points gris : autres patinoires · carte ©`, osm: "contributeurs d'OpenStreetMap", mapAria: (c, r, d) => `Carte centrée sur ${c} montrant ${r}, à ${d}`,
@@ -827,23 +830,39 @@ function restore() { try { const s = JSON.parse(localStorage.getItem("iceFinder"
 const sameName = r => r.session.trim().toLowerCase() === r.type.toLowerCase();
 const costShort = c => { const m = (c || "").match(/\$\d+(?:\.\d\d)?/); return m ? m[0] : /free/i.test(c) ? t("free") : t("seeRink"); };
 const SKATE = ["Public Skate", "Adult Public Skate", "Family Skate", "Youth Skate"];
-function bookShort(r) {
+// Each city's own booking system (short links the cities publish; they redirect to the live system).
+const BOOK_LINKS = {
+  "Vancouver": "https://anc.ca.apm.activecommunities.com/vancouver/calendars",
+  "Burnaby": "https://www.burnaby.ca/webreg",
+  "Richmond": "https://www.richmond.ca/parks-recreation/about/arenas/fees.htm",
+  "Surrey": "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4?widgetId=b4059e75-9755-401f-a7b5-d7c75361420d",
+  "Coquitlam": "https://www.coquitlam.ca/979",
+  "Port Coquitlam": "https://www.portcoquitlam.ca/register",
+  "Port Moody": "https://cityofportmoody.perfectmind.com/Contacts/BookMe4BookingPages/Classes?calendarId=da287199-756a-422e-8fbc-b2e5063b77f8&widgetId=15f6af07-39c5-473e-b053-96653f77a406&embed=False",
+  "New Westminster": "https://www.newwestcity.ca/register",
+  "North Vancouver": "https://www.nvrc.ca/drop-in-schedules",
+  "Delta": "https://cityofdelta.perfectmind.com/24140/Clients/BookMe4BookingPages/Classes?calendarId=c9b7ca71-56dc-43e3-aec7-d976239a5660&widgetId=0da93182-93fb-4314-87bd-a8ba4ee9a4c9&embed=False"
+};
+function bookRule(r) {
   const b = r.booking || "", skate = SKATE.includes(r.type), n = r.notes || "";
   const flagged = /^(reserve|pre-register)/i.test(n);
-  if (r.priv) return t("privTag");
-  if (b.startsWith("Hockey/stick & puck/figure")) return skate ? t("bkDoor") : t("bkSign", 72);
-  if (b.startsWith("Skates walk-in only")) return skate || r.type === "Figure Skating" ? t("bkWalk") : t("bkBook", 72);
-  if (b.startsWith("Public skate drop-in")) return skate || (r.type === "Drop-in Hockey" && b.includes("& puck &")) ? t("bkDrop") : t("bkMon");
-  if (b.startsWith("Drop-in; hockey & some skates via NVRC")) return r.type === "Drop-in Hockey" || flagged ? t("bkNVRC") : t("bkDrop");
-  if (b.startsWith("Drop-in; some sessions bookable")) return flagged ? t("bkBook", 72) : t("bkDrop");
-  if (b.startsWith("Drop-in; 'Reserve'")) return flagged ? t("bkBook", 48) : t("bkDrop");
-  if (b.startsWith("Drop-in; limited-capacity")) return flagged ? t("bkBook", 72) : t("bkDrop");
-  if (b.startsWith("Drop-in; * sessions")) return flagged ? t("bkPre") : t("bkDrop");
-  if (b.startsWith("Pre-register 2 days")) return t("bkPre2");
-  if (b.startsWith("Pre-register online recommended")) return t("bkPreRec");
-  if (/^drop-in/i.test(b)) return t("bkDrop");
-  return b;
+  if (r.priv) return ["privTag"];
+  if (b.startsWith("Hockey/stick & puck/figure")) return skate ? ["bkDoor"] : ["bkSign", 72];
+  if (b.startsWith("Skates walk-in only")) return skate || r.type === "Figure Skating" ? ["bkWalk"] : ["bkBook", 72];
+  if (b.startsWith("Public skate drop-in")) return skate || (r.type === "Drop-in Hockey" && b.includes("& puck &")) ? ["bkDrop"] : ["bkMon"];
+  if (b.startsWith("Drop-in; hockey & some skates via NVRC")) return r.type === "Drop-in Hockey" || flagged ? ["bkNVRC"] : ["bkDrop"];
+  if (b.startsWith("Drop-in; some sessions bookable")) return flagged ? ["bkBook", 72] : ["bkDrop"];
+  if (b.startsWith("Drop-in; 'Reserve'")) return flagged ? ["bkBook", 48] : ["bkDrop"];
+  if (b.startsWith("Drop-in; limited-capacity")) return flagged ? ["bkBook", 72] : ["bkDrop"];
+  if (b.startsWith("Drop-in; * sessions")) return flagged ? ["bkPre"] : ["bkDrop"];
+  if (b.startsWith("Pre-register 2 days")) return ["bkPre2"];
+  if (b.startsWith("Pre-register online recommended")) return ["bkPreRec"];
+  if (/^drop-in/i.test(b)) return ["bkDrop"];
+  return [null, b];
 }
+function bookShort(r) { const [k, a] = bookRule(r); return k ? t(k, a) : a; }
+const NO_BOOK = ["bkDrop", "bkDoor", "bkWalk", null];
+const bookLink = r => NO_BOOK.includes(bookRule(r)[0]) ? "" : r.priv ? r.link : BOOK_LINKS[r.city] || "";
 const cardNote = r => (r.notes || "").replace(/^(reserve|pre-register)\s*;?\s*/i, "").replace(/^cancelled .*/i, "");
 
 /* ---------- results ---------- */
@@ -925,7 +944,7 @@ function render() {
       </div>
       <div class="side">
         ${state.mode === "near" && r.dist != null ? `<span class="km">${r.dist.toFixed(1)} km</span>` : ""}
-        <span class="cost" title="${esc(r.cost)}">${esc(costShort(r.cost))}</span>
+        <span class="cost" title="${esc(r.cost)}">${esc(costShort(r.cost))}</span>${bookLink(r) ? `<a class="book" data-track="book_online" href="${bookLink(r)}" target="_blank" rel="noopener" aria-label="${esc(t("bookAria", r.session, r.rink))}">${esc(t("bookBtn"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a>` : ""}
         ${busyOf(r) ? `<span class="busy busy-${busyOf(r).level}"><i></i>${esc(t("busy_" + busyOf(r).level))}</span>` : ""}
         <span class="more"><i class="chev"></i>${isOpen ? t("less") : esc(t("more"))}</span>
       </div>
