@@ -165,7 +165,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none !important; } }
 .card[aria-expanded="true"] { border-color: var(--c); box-shadow: 0 6px 22px -14px rgba(0,0,0,.45); }
-@media (max-width: 520px) { .card { grid-template-columns: 74px 1fr; } .card .side { grid-column: 1 / -1; justify-items: start; text-align: left; grid-auto-flow: column; justify-content: start; gap: 12px; } }
+@media (max-width: 520px) { .card { grid-template-columns: 74px 1fr; }
+  /* Phones: price on the left, Book and Details always pinned to the right edge */
+  .card .side { grid-column: 1 / -1; justify-self: stretch; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; text-align: left; }
+  .card .side .cost { flex: 1 1 0; min-width: 0; max-width: none; }
+  .card .side .book, .card .side .more { flex: none; }
+  .card .side .busy { order: 9; flex-basis: 100%; } }
 .time { font: 700 22px/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .time small { display: block; font: 500 13px var(--font-body); color: var(--muted); margin-top: 3px; }
 .what { display: grid; gap: 3px; min-width: 0; }

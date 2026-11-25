@@ -116,7 +116,12 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .notice { color: var(--muted); border-left: 3px solid var(--warn); padding: 2px 0 2px 10px; font-size: 13px; margin: 0 0 12px; }
 .list { display: grid; gap: 8px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--c, var(--accent)); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: 96px 1fr auto; gap: 4px 14px; align-items: start; }
-@media (max-width: 520px) { .card { grid-template-columns: 78px 1fr; } .card .side { grid-column: 1 / -1; justify-self: start; text-align: left; } }
+@media (max-width: 520px) { .card { grid-template-columns: 78px 1fr; }
+  /* Phones: price on the left, Book and Details always pinned to the right edge */
+  .card .side { grid-column: 1 / -1; justify-self: stretch; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; text-align: left; }
+  .card .side .cost { flex: 1 1 0; min-width: 0; max-width: none; }
+  .card .side .book, .card .side .more { flex: none; }
+  .card .side .busy { order: 9; flex-basis: 100%; } }
 .time { font: 700 22px/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .time small { display: block; font: 500 13px var(--font-body); color: var(--muted); margin-top: 3px; }
 .what { display: grid; gap: 3px; min-width: 0; }
