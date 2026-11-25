@@ -193,6 +193,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .btn { display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink) !important; text-decoration: none; font: 500 13px var(--font-body); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) !important; }
 .report { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); }
+.side-d { display: grid; gap: 14px; align-content: start; }
+.gmap { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.gmap iframe { display: block; width: 100%; aspect-ratio: 600 / 380; border: 0; }
+.gmap figcaption { font-size: 12px; color: var(--muted); padding: 6px 10px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gmap iframe { filter: invert(.9) hue-rotate(180deg) saturate(.85) brightness(.95); } }
+:root[data-theme="dark"] .gmap iframe { filter: invert(.9) hue-rotate(180deg) saturate(.85) brightness(.95); }
 .also h4 { font: 600 12px var(--font-body); text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 0 0 8px; }
 .also ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 13px; }
 .also li { display: grid; grid-template-columns: 12px 108px 1fr; gap: 8px; align-items: center; }
@@ -497,7 +503,7 @@ const L = {
   few: n => `Only ${plural(n, "session", "sessions")} with these filters.`,
   todayDot: "Today · ", tomorrowDot: "Tomorrow · ", toTime: "to", more: "Details", less: "Less", onNow: "On now", cancelled: "Cancelled on this date",
   fSession: "Session", fSport: "Sport", fFor: "For", fPlace: "Place", fRoom: "Room", fAddress: "Address", fCost: "Cost", fBooking: "Booking", fNotes: "Notes",
-  directions: "Directions", openMaps: "Open in Google Maps", official: "Official schedule", bookOnline: "Book online", bookBtn: "Book", bookAria: (s, v) => `Book ${s} at ${v} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`, htbCity: c => `How booking works in ${c}`, htbAll: "How to book: rules and links for each city", privTag: "Private rink · book online",
+  directions: "Directions", openMaps: "Open in Google Maps", official: "Official schedule", bookOnline: "Book online", bookBtn: "Book", gmapRoute: c => `Driving route from ${c}`, gmapTitle: v => `Google map of ${v}`, bookAria: (s, v) => `Book ${s} at ${v} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`, htbCity: c => `How booking works in ${c}`, htbAll: "How to book: rules and links for each city", privTag: "Private rink · book online",
   alsoAt: d => `Everything here on ${d}`, reportLink: "Report a problem with this session",
   shareSite: "Share", shareBtn: "Share", shareSessH: "Share this session", shareSiteH: "Share Drop-in Finder", shareSportH: s => `Share ${s} times`,
   shNative: "Share with your phone's apps…", shCopy: "Copy link", shCopied: "Link copied ✓", shText: "Text message", shEmail: "Email",
@@ -543,7 +549,7 @@ const L = {
   few: n => `Seulement ${plural(n, "séance", "séances")} avec ces filtres.`,
   todayDot: "Aujourd'hui · ", tomorrowDot: "Demain · ", toTime: "à", more: "Détails", less: "Moins", onNow: "En cours", cancelled: "Annulée à cette date",
   fSession: "Séance", fSport: "Sport", fFor: "Pour", fPlace: "Lieu", fRoom: "Salle", fAddress: "Adresse", fCost: "Coût", fBooking: "Réservation", fNotes: "Remarques",
-  directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", official: "Horaire officiel", bookOnline: "Réserver en ligne", bookBtn: "Réserver", bookAria: (s, v) => `Réserver ${s} à ${v} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`, htbCity: c => `Comment réserver à ${c}`, htbAll: "Comment réserver : règles et liens par ville", privTag: "Patinoire privée · réservation en ligne",
+  directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", official: "Horaire officiel", bookOnline: "Réserver en ligne", bookBtn: "Réserver", gmapRoute: c => `Itinéraire en voiture depuis ${c}`, gmapTitle: v => `Carte Google de ${v}`, bookAria: (s, v) => `Réserver ${s} à ${v} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`, htbCity: c => `Comment réserver à ${c}`, htbAll: "Comment réserver : règles et liens par ville", privTag: "Patinoire privée · réservation en ligne",
   alsoAt: d => `Tout ce qui a lieu ici le ${d}`, reportLink: "Signaler un problème avec cette séance",
   shareSite: "Partager", shareBtn: "Partager", shareSessH: "Partager cette séance", shareSiteH: "Partager Drop-in Finder", shareSportH: s => `Partager : ${s}`,
   shNative: "Partager avec les applis du téléphone…", shCopy: "Copier le lien", shCopied: "Lien copié ✓", shText: "Texto", shEmail: "Courriel",
@@ -606,6 +612,18 @@ function restore() { try { const s = JSON.parse(localStorage.getItem("dropFinder
 const sportsFor = () => state.sport === "all" ? null : state.sport;
 
 /* ---------- filtering ---------- */
+/* Google Maps embed (Maps Embed API, free). The key is restricted in Google Cloud to icetimes.ca, so it is safe to be visible. */
+const GMAPS_KEY = "AIzaSyDFfOv8DRTV2ToJ7QlbSWuRLVh9PGGYDfU";
+function gmapEmbed(r) {
+  const dest = encodeURIComponent(r.venue + ", " + r.address + (r.address.includes(r.city) ? "" : ", " + r.city) + ", BC");
+  const lang = "&language=" + (LANG === "fr" ? "fr" : "en") + "&region=CA";
+  const o = originPt();
+  const src = o
+    ? `https://www.google.com/maps/embed/v1/directions?key=${GMAPS_KEY}&origin=${o[0]},${o[1]}&destination=${dest}&mode=driving${lang}`
+    : `https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${dest}&zoom=14${lang}`;
+  const cap = o ? t("gmapRoute", state.geo ? t("myLoc") : (matchPlace(state.origin) || [state.origin])[0]) : "";
+  return `<figure class="gmap"><iframe src="${src}" title="${esc(t("gmapTitle", r.venue))}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>${cap ? `<figcaption>${esc(cap)}</figcaption>` : ""}</figure>`;
+}
 function originPt() { if (state.mode !== "near") return null; if (state.geo) return state.geo; const p = matchPlace(state.origin); return p ? [p[1], p[2]] : null; }
 function matchesBase(r, { sport = sportsFor(), ignoreWhere = false } = {}) {
   if (sport && r.sport !== sport) return false;
@@ -719,8 +737,8 @@ function details(r) {
       </div>
       <a class="report" href="${mailto(t("repSubject", r.session, r.venue), t("repBody", r.session, r.venue, r.city, dTxt, fmt(r.start) + "–" + fmt(r.end)))}">${esc(t("reportLink"))}</a>
     </div>
-    <div class="also"><h4>${esc(t("alsoAt", dateFmt(r.dateObj, { weekday: "long" })))}</h4>
-      <ul>${same.map(x => `<li class="${x.id === r.id ? "cur" : ""}" style="--c:${SCOL[x.sport]}"><i></i><span>${fmt(x.start)}–${fmt(x.end)}</span><span>${esc(x.session)}</span></li>`).join("")}</ul></div>
+    <div class="side-d">${GMAPS_KEY ? gmapEmbed(r) : ""}<div class="also"><h4>${esc(t("alsoAt", dateFmt(r.dateObj, { weekday: "long" })))}</h4>
+      <ul>${same.map(x => `<li class="${x.id === r.id ? "cur" : ""}" style="--c:${SCOL[x.sport]}"><i></i><span>${fmt(x.start)}–${fmt(x.end)}</span><span>${esc(x.session)}</span></li>`).join("")}</ul></div></div>
   </div>`;
 }
 function render() {
