@@ -265,6 +265,11 @@ dialog.share::backdrop { background: rgba(8,18,30,.5); }
 .sh-note { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
 .sh-done { color: var(--accent); font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) { .card, .tile { transition: border-color .15s, box-shadow .15s; } }
+.geobtn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin: 2px 0 12px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: 10px; background: transparent; color: var(--accent); font: 600 15px var(--font-body); cursor: pointer; }
+@media (hover: hover) { .geobtn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); } }
+.geobtn:disabled { opacity: .6; cursor: progress; }
+.geobtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#originHint:not(:empty) { margin-top: 6px; line-height: 1.45; color: var(--ink); }
 </style>
 </head>
 <body>
@@ -314,11 +319,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
       <div id="cityBox"><label class="sr-only" for="city">City</label><select id="city"></select></div>
       <div id="nearBox" hidden>
-        <label class="lbl" for="origin" data-i18n="originLbl">Your city or neighbourhood</label>
+        <button type="button" class="geobtn" id="geoBtn"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 2.3a1 1 0 0 0-1.06-.23l-18 7a1 1 0 0 0 .1 1.9l7.6 2.1 2.1 7.6a1 1 0 0 0 1.9.1l7-18a1 1 0 0 0-.23-1.06z"/></svg><span data-i18n="useLoc">Use my current location</span></button>
+        <label class="lbl" for="origin" data-i18n="originLbl">Or type a city or neighbourhood</label>
         <input type="text" id="origin" list="placeList" autocomplete="off">
         <datalist id="placeList"></datalist>
-        <p class="hint" id="originHint"></p>
-        <button type="button" class="linkbtn" id="geoBtn" data-i18n="useLoc">Use my current location</button>
+        <p class="hint" id="originHint" aria-live="polite"></p>
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px">
           <label class="lbl" for="radius" style="margin:0" data-i18n="within">Within</label><span class="range-out" id="radiusOut"></span>
         </div>
@@ -521,8 +526,8 @@ const L = {
   sp: { skate: "Public skating", sp: "Stick & puck", hockey: "Drop-in hockey", basketball: "Basketball", volleyball: "Volleyball", soccer: "Indoor soccer", floorhockey: "Ball & floor hockey", netball: "Netball", badminton: "Badminton", pickleball: "Pickleball", tabletennis: "Table tennis", tennis: "Tennis", opengym: "Open gym", all: "All sports" },
   tileToday: (n, next, w) => n ? `<b>${n} today</b>${next ? " · next " + next : ""}` : `${w} this week`,
   tileWeek: n => `${n} this week`,
-  back: "Pick a sport", filters: "Where, when & who", lgWhere: "Where", byCity: "By city", nearMe: "Near me", originLbl: "Your city or neighbourhood", originPh: "Start typing, e.g. Burnaby",
-  useLoc: "Use my current location", locating: "Finding you…", locFail: "Couldn't get your location. Type a place instead.", myLoc: "my location",
+  back: "Pick a sport", filters: "Where, when & who", lgWhere: "Where", byCity: "By city", nearMe: "Near me", originLbl: "Or type a city or neighbourhood", originPh: "Start typing, e.g. Burnaby",
+  useLoc: "Use my current location", locDeniedIOS: "Location is blocked for this site. On iPhone, open Settings → Privacy & Security → Location Services → Safari Websites and choose While Using the App. Then in Safari, tap the aA (page menu) button in the address bar → Website Settings → Location → Ask, and try again. Or just type a place above.", locDenied: "Location is blocked for this site. Allow it in your browser's site settings (the icon beside the web address), then try again. Or just type a place above.", locSlow: "Your phone took too long to find you. Try again, or type a place above.",  locating: "Finding you…", locFail: "Couldn’t get your location. Type a place above instead.", myLoc: "my location",
   within: "Within", lgWhen: "When", lgWho: "Who", womenOnly: "Women's sessions only", reset: "Reset filters",
   allCities: n => `All cities (${n})`, allCitiesS: "All cities",
   today: "Today", tomorrow: "Tomorrow", next7: "Next 7 days", pAny: "Any time", pMorning: "Morning", pAfternoon: "Afternoon", pEvening: "Evening",
@@ -567,8 +572,8 @@ const L = {
   sp: { skate: "Patinage public", sp: "Bâton et rondelle", hockey: "Hockey libre", basketball: "Basketball", volleyball: "Volleyball", soccer: "Soccer intérieur", floorhockey: "Hockey-balle et cosom", netball: "Netball", badminton: "Badminton", pickleball: "Pickleball", tabletennis: "Tennis de table", tennis: "Tennis", opengym: "Gymnase libre", all: "Tous les sports" },
   tileToday: (n, next, w) => n ? `<b>${n} aujourd'hui</b>${next ? " · prochaine " + next : ""}` : `${w} cette semaine`,
   tileWeek: n => `${n} cette semaine`,
-  back: "Choisir un sport", filters: "Où, quand et qui", lgWhere: "Où", byCity: "Par ville", nearMe: "Près de moi", originLbl: "Votre ville ou quartier", originPh: "Commencez à taper, p. ex. Burnaby",
-  useLoc: "Utiliser ma position actuelle", locating: "Localisation…", locFail: "Position introuvable. Tapez plutôt un lieu.", myLoc: "ma position",
+  back: "Choisir un sport", filters: "Où, quand et qui", lgWhere: "Où", byCity: "Par ville", nearMe: "Près de moi", originLbl: "Ou tapez une ville ou un quartier", originPh: "Commencez à taper, p. ex. Burnaby",
+  useLoc: "Utiliser ma position actuelle", locDeniedIOS: "La localisation est bloquée pour ce site. Sur iPhone, ouvrez Réglages → Confidentialité et sécurité → Service de localisation → Sites web Safari et choisissez Lorsque l’app est active. Puis, dans Safari, touchez le bouton aA (menu de la page) dans la barre d’adresse → Réglages du site web → Position → Demander, et réessayez. Ou tapez simplement un lieu ci-dessus.", locDenied: "La localisation est bloquée pour ce site. Autorisez-la dans les réglages du site de votre navigateur (l’icône à côté de l’adresse), puis réessayez. Ou tapez simplement un lieu ci-dessus.", locSlow: "Votre téléphone a mis trop de temps à vous localiser. Réessayez, ou tapez un lieu ci-dessus.",  locating: "Localisation…", locFail: "Position introuvable. Tapez plutôt un lieu ci-dessus.", myLoc: "ma position",
   within: "Dans un rayon de", lgWhen: "Quand", lgWho: "Qui", womenOnly: "Séances pour femmes seulement", reset: "Réinitialiser les filtres",
   allCities: n => `Toutes les villes (${n})`, allCitiesS: "Toutes les villes",
   today: "Aujourd'hui", tomorrow: "Demain", next7: "7 prochains jours", pAny: "Toute la journée", pMorning: "Matin", pAfternoon: "Après-midi", pEvening: "Soir",
@@ -851,11 +856,21 @@ $("origin").oninput = e => { const p = matchPlace(e.target.value); if (p) { stat
 $("origin").onchange = e => { const p = matchPlace(e.target.value); if (p) { state.origin = p[0]; state.geo = null; state.originPicked = true; e.target.value = p[0]; update(); } updateHint(); };
 $("radius").oninput = e => { state.radius = +e.target.value; $("radiusOut").textContent = state.radius + " km"; render(); };
 $("radius").onchange = () => save();
+
+/* Location: ask the phone, retry once if slow, and explain exactly what to fix if it's blocked. */
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function geoMsg(e) { return t(e && e.code === 1 ? (isIOS ? "locDeniedIOS" : "locDenied") : e && e.code === 3 ? "locSlow" : "locFail"); }
+function askGeo(ok, fail) {
+  if (!navigator.geolocation) return fail(null);
+  const go = (n) => navigator.geolocation.getCurrentPosition(ok, e => (e && e.code === 3 && n === 0) ? go(1) : fail(e),
+    { enableHighAccuracy: false, maximumAge: 600000, timeout: n ? 25000 : 12000 });
+  try { go(0); } catch (e) { fail(e); }
+}
+function geoBusy(on) { const b = $("geoBtn"); b.disabled = on; b.querySelector("span").textContent = t(on ? "locating" : "useLoc"); }
 $("geoBtn").onclick = () => {
-  const b = $("geoBtn"); b.textContent = t("locating");
-  try { navigator.geolocation.getCurrentPosition(p => { state.geo = [p.coords.latitude, p.coords.longitude]; state.mode = "near"; $("origin").value = ""; b.textContent = t("useLoc"); update(); },
-    () => { b.textContent = t("useLoc"); $("originHint").textContent = t("locFail"); }, { timeout: 10000, maximumAge: 600000 }); }
-  catch { b.textContent = t("useLoc"); $("originHint").textContent = t("locFail"); }
+  geoBusy(true); $("originHint").textContent = "";
+  askGeo(p => { state.geo = [p.coords.latitude, p.coords.longitude]; state.mode = "near"; $("origin").value = ""; geoBusy(false); update(); },
+    e => { geoBusy(false); $("originHint").textContent = geoMsg(e); });
 };
 $("date").onchange = e => { if (e.target.value) { state.date = e.target.value; state.when = e.target.value === isoToday() ? "today" : "date"; update(); } };
 $("women").onchange = e => { state.women = e.target.checked; update(); };

@@ -341,6 +341,11 @@ dialog.share::backdrop { background: rgba(8,18,30,.5); }
 .glance summary h2 { margin: 0; }
 .glance h3 { font: 600 14px var(--font-body); color: var(--ink); margin: 14px 0 2px; }
 .glance p { margin: 4px 0; line-height: 1.55; }
+.geobtn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin: 2px 0 12px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: 10px; background: transparent; color: var(--accent); font: 600 15px var(--font-body); cursor: pointer; }
+@media (hover: hover) { .geobtn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); } }
+.geobtn:disabled { opacity: .6; cursor: progress; }
+.geobtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#originHint:not(:empty) { margin-top: 6px; line-height: 1.45; color: var(--ink); }
 </style>
 </head>
 <body>
@@ -390,11 +395,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <select id="city"></select>
       </div>
       <div id="nearBox" hidden>
-        <label class="lbl" for="origin" data-i18n="originLbl">Your city or neighbourhood</label>
+        <button type="button" class="geobtn" id="geoBtn"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 2.3a1 1 0 0 0-1.06-.23l-18 7a1 1 0 0 0 .1 1.9l7.6 2.1 2.1 7.6a1 1 0 0 0 1.9.1l7-18a1 1 0 0 0-.23-1.06z"/></svg><span data-i18n="useLoc">Use my current location</span></button>
+        <label class="lbl" for="origin" data-i18n="originLbl">Or type a city or neighbourhood</label>
         <input id="origin" list="placeList" autocomplete="off" placeholder="Start typing, e.g. Vancouver" data-i18n-ph="originPh" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:14px var(--font-body)">
         <datalist id="placeList"></datalist>
-        <p class="hint" id="originHint"></p>
-        <button type="button" class="linkbtn" id="geoBtn" data-i18n="useLoc">📍 Use my current location</button>
+        <p class="hint" id="originHint" aria-live="polite"></p>
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px">
           <label class="lbl" for="radius" style="margin:0" data-i18n="within">Within</label>
           <span class="range-out" id="radiusOut">25 km</span>
@@ -690,7 +695,7 @@ const L = {
   disclaimer: `<b>Check the rink's website before you go.</b> <span class="dlong">Times come from city and rink schedules and can change at short notice.</span><span class="dshort">Times can change at short notice.</span>`,
   updated: d => `Last updated <b>${d}</b> · refreshed weekly`,
   filtersAria: "Search filters", todayBtn: "Show open ice today", lgType: "Type of ice time", lgGender: "Gender", gAny: "Any", gOpen: "Open to all", gWomen: "Women's",
-  lgLoc: "Location", byCity: "By city", nearMe: "Near me", cityLbl: "City", originLbl: "Your city or neighbourhood", originPh: "Start typing, e.g. Vancouver", useLoc: "📍 Use my current location", locating: "Finding you…", locFail: "Couldn't get your location. Type a place instead.", myLoc: "your location",
+  lgLoc: "Location", byCity: "By city", nearMe: "Near me", cityLbl: "City", originLbl: "Or type a city or neighbourhood", originPh: "Start typing, e.g. Vancouver", useLoc: "Use my current location", locDeniedIOS: "Location is blocked for this site. On iPhone, open Settings → Privacy & Security → Location Services → Safari Websites and choose While Using the App. Then in Safari, tap the aA (page menu) button in the address bar → Website Settings → Location → Ask, and try again. Or just type a place above.", locDenied: "Location is blocked for this site. Allow it in your browser's site settings (the icon beside the web address), then try again. Or just type a place above.", locSlow: "Your phone took too long to find you. Try again, or type a place above.",  locating: "Finding you…", locFail: "Couldn’t get your location. Type a place above instead.", myLoc: "your location",
   within: "Within", radiusHint: "Straight-line distance from your location or the place you enter.", lgDay: "Day", lgTime: "Time of day", from: "From", to: "To", reset: "Reset filters",
   allTypes: "All types", noneTypes: "None picked", nTypes: n => `${n} types`, allCities: n => `All cities (${n})`, allCitiesS: "All cities", midnight: "midnight",
   pAny: "Any time", pMorning: "Morning", pAfternoon: "Afternoon", pEvening: "Evening", next7: "Next 7 days", today: "Today", tomorrow: "Tomorrow", fromNow: "From now",
@@ -757,7 +762,7 @@ const L = {
   disclaimer: `<b>Vérifiez le site de la patinoire avant d'y aller.</b> <span class="dlong">Les heures proviennent des horaires des villes et des patinoires et peuvent changer à court préavis.</span><span class="dshort">Les heures peuvent changer à court préavis.</span>`,
   updated: d => `Mis à jour le <b>${d}</b> · actualisé chaque semaine`,
   filtersAria: "Filtres de recherche", todayBtn: "Voir la glace libre aujourd'hui", lgType: "Type de séance", lgGender: "Genre", gAny: "Tous", gOpen: "Ouvert à tous", gWomen: "Femmes",
-  lgLoc: "Lieu", byCity: "Par ville", nearMe: "Près de moi", cityLbl: "Ville", originLbl: "Votre ville ou quartier", originPh: "Commencez à taper, p. ex. Vancouver", useLoc: "📍 Utiliser ma position actuelle", locating: "Localisation…", locFail: "Position introuvable. Tapez plutôt un lieu.", myLoc: "votre position",
+  lgLoc: "Lieu", byCity: "Par ville", nearMe: "Près de moi", cityLbl: "Ville", originLbl: "Ou tapez une ville ou un quartier", originPh: "Commencez à taper, p. ex. Vancouver", useLoc: "Utiliser ma position actuelle", locDeniedIOS: "La localisation est bloquée pour ce site. Sur iPhone, ouvrez Réglages → Confidentialité et sécurité → Service de localisation → Sites web Safari et choisissez Lorsque l’app est active. Puis, dans Safari, touchez le bouton aA (menu de la page) dans la barre d’adresse → Réglages du site web → Position → Demander, et réessayez. Ou tapez simplement un lieu ci-dessus.", locDenied: "La localisation est bloquée pour ce site. Autorisez-la dans les réglages du site de votre navigateur (l’icône à côté de l’adresse), puis réessayez. Ou tapez simplement un lieu ci-dessus.", locSlow: "Votre téléphone a mis trop de temps à vous localiser. Réessayez, ou tapez un lieu ci-dessus.",  locating: "Localisation…", locFail: "Position introuvable. Tapez plutôt un lieu ci-dessus.", myLoc: "votre position",
   within: "Dans un rayon de", radiusHint: "Distance à vol d'oiseau depuis votre position ou le lieu saisi.", lgDay: "Jour", lgTime: "Moment de la journée", from: "De", to: "À", reset: "Réinitialiser les filtres",
   allTypes: "Tous les types", noneTypes: "Aucun type", nTypes: n => `${n} types`, allCities: n => `Toutes les villes (${n})`, allCitiesS: "Toutes les villes", midnight: "minuit",
   pAny: "Toute la journée", pMorning: "Matin", pAfternoon: "Après-midi", pEvening: "Soir", next7: "7 prochains jours", today: "Aujourd'hui", tomorrow: "Demain", fromNow: "Dès maintenant",
@@ -858,7 +863,7 @@ function buildTimeSelects() {
 function syncControls() {
   $("date").value = state.date; $("from").value = state.from; $("to").value = state.to;
   $("radius").value = state.radius; $("radiusOut").textContent = state.radius + " km";
-  $("origin").value = state.origin; $("city").value = state.city;
+  $("origin").value = state.geo ? "" : state.origin; $("city").value = state.city;
   $("modeCity").setAttribute("aria-pressed", state.mode === "city"); $("modeNear").setAttribute("aria-pressed", state.mode === "near");
   document.querySelectorAll("[data-g]").forEach(b => b.setAttribute("aria-pressed", b.dataset.g === state.gender)); $("genderHint").textContent = GENDER_HINT[state.gender];
   $("cityBox").hidden = state.mode !== "city"; $("nearBox").hidden = state.mode !== "near";
@@ -1191,13 +1196,24 @@ function updateHint() { const v = $("origin").value, p = matchPlace(v);
   $("originHint").textContent = state.geo && !v ? t("hintFrom", t("myLoc")) : !v ? t("hintPick") : p ? t("hintFrom", p[0]) : t("hintMiss"); }
 /* Location: asked only when the person taps "Near me" or the button; used straight away on later visits
    if they already allowed it. Coordinates stay in the page and are never stored or sent anywhere. */
+
+/* Location: ask the phone, retry once if slow, and explain exactly what to fix if it's blocked. */
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function geoMsg(e) { return t(e && e.code === 1 ? (isIOS ? "locDeniedIOS" : "locDenied") : e && e.code === 3 ? "locSlow" : "locFail"); }
+function askGeo(ok, fail) {
+  if (!navigator.geolocation) return fail(null);
+  const go = (n) => navigator.geolocation.getCurrentPosition(ok, e => (e && e.code === 3 && n === 0) ? go(1) : fail(e),
+    { enableHighAccuracy: false, maximumAge: 600000, timeout: n ? 25000 : 12000 });
+  try { go(0); } catch (e) { fail(e); }
+}
+function geoBusy(on) { const b = $("geoBtn"); b.disabled = on; b.querySelector("span").textContent = t(on ? "locating" : "useLoc"); }
 function locate(quiet) {
-  const b = $("geoBtn"); if (!navigator.geolocation) { if (!quiet) $("originHint").textContent = t("locFail"); return; }
-  if (!quiet) b.textContent = t("locating");
-  navigator.geolocation.getCurrentPosition(p => {
-    state.geo = [p.coords.latitude, p.coords.longitude]; state.mode = "near"; locChanged(true); $("origin").value = ""; b.textContent = t("useLoc");
+  if (!quiet) { geoBusy(true); $("originHint").textContent = ""; }
+  askGeo(p => {
+    state.geo = [p.coords.latitude, p.coords.longitude]; state.mode = "near"; locChanged(true); $("origin").value = ""; geoBusy(false); $("originHint").textContent = "";
+
     syncControls(); updateHint(); render(); track("use_location");
-  }, () => { b.textContent = t("useLoc"); if (!quiet) $("originHint").textContent = t("locFail"); }, { timeout: 10000, maximumAge: 600000 });
+  }, e => { geoBusy(false); if (!quiet) $("originHint").textContent = geoMsg(e); });
 }
 $("geoBtn").onclick = () => locate(false);
 try { navigator.permissions && navigator.permissions.query({ name: "geolocation" }).then(p => { if (p.state === "granted" && !state.locSet) locate(true); }).catch(() => {}); } catch {}
