@@ -128,8 +128,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .loc .ages { color: var(--muted); font-weight: 400; font-size: 13px; }
 .busy { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .busy i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-.busy-quiet { color: #1f7a4a; } .busy-moderate { color: #a86b00; } .busy-busy { color: #b42318; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .busy-quiet { color: #6fcf97; } :root:not([data-theme="light"]) .busy-moderate { color: #f2c46b; } :root:not([data-theme="light"]) .busy-busy { color: #f2827a; } }
+.busy-quiet { color: #1f7a4a; } .busy-moderate { color: #a86b00; } .busy-busy, .busy-fills { color: #b42318; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .busy-quiet { color: #6fcf97; } :root:not([data-theme="light"]) .busy-moderate { color: #f2c46b; } :root:not([data-theme="light"]) .busy-busy, :root:not([data-theme="light"]) .busy-fills { color: #f2827a; } }
 .pill { font: 500 12px/1 var(--font-body); color: var(--muted); }
 .meta { font-size: 13px; color: var(--muted); }
 .meta b { color: var(--ink); font-weight: 500; }
@@ -491,14 +491,14 @@ DATA.forEach((r, i) => { r.gender = genderOf(r); r.id = i; });
 const BUSY = [
   { rink: "South Surrey Arena", type: "Stick & Puck", days: ["Tue", "Fri"], before: 720, level: "quiet", src: "regulars" },
 ];
-/* Filled in by tools/build_busy.py from sign-up counts collected before sessions (Surrey "spots left", Canlan "x/N registered").
+/* Filled in by tools/build_busy.py from sign-up counts ("spots left" on city booking lists, Canlan "x/N registered"). level can also be "fills".
    Each entry: [rink, day, start (minutes), type, level, average % full, weeks of data]. */
 const BUSY_AUTO = [];
 const busyCache = new Map();
 function busyOf(r) {
   if (busyCache.has(r.id)) return busyCache.get(r.id);
   const a = BUSY_AUTO.find(x => x[0] === r.rink && x[1] === r.day && x[2] === r.start && x[3] === r.type);
-  const b = (a && { level: a[4], src: "counts", note: t("busyCountsNote", a[5], a[6]) }) || BUSY.find(x => x.rink === r.rink && (!x.type || x.type === r.type) && (!x.days || x.days.includes(r.day))
+  const b = (a && { level: a[4], src: "counts", note: a[4] === "fills" ? t("busyFillsNote", a[6]) : t("busyCountsNote", a[5], a[6]) }) || BUSY.find(x => x.rink === r.rink && (!x.type || x.type === r.type) && (!x.days || x.days.includes(r.day))
     && (x.before == null || r.start < x.before) && (x.after == null || r.start >= x.after)) || null;
   busyCache.set(r.id, b); return b;
 }
@@ -673,8 +673,9 @@ const L = {
   few: (n, isToday, todayMode, wd) => `Only ${plural(n, "session", "sessions")} ${isToday ? (todayMode ? "left today" : "today") : "on " + wd} with these filters.`,
   todayDot: "Today · ", tomorrowDot: "Tomorrow · ", more: "Details & map", less: "Less", onNow: "On now", cancelled: "Cancelled on this date",
   fSession: "Session", fType: "Type", fFor: "For", fRink: "Rink", fAddress: "Address", fCost: "Cost", fBooking: "Booking", fNotes: "Notes",
-  fBusy: "How busy", busy_quiet: "Usually quiet", busy_moderate: "Moderate", busy_busy: "Often busy",
+  fBusy: "How busy", busy_quiet: "Usually quiet", busy_moderate: "Moderate", busy_busy: "Often busy", busy_fills: "Often fills up · book early",
   busySrc_regulars: "reported by regulars", busySrc_counts: "from sign-up counts",
+  busyFillsNote: w => `seen full before start in ${w} of the weeks checked`,
   busyCountsNote: (p, w) => `on average ${p}% full at start time (${w} week${w == 1 ? "" : "s"} of sign-up counts)`,
   free: "Free", seeRink: "See rink", bkDrop: "Drop-in", bkDoor: "Drop-in · pay at the door", bkWalk: "Walk-in",
   bkSign: h => `Sign up ${h} h ahead`, bkBook: h => `Book online, up to ${h} h ahead`, bkMon: "Pre-register (opens Mon 6 am, a week ahead)",
@@ -739,8 +740,9 @@ const L = {
   few: (n, isToday, todayMode, wd) => `Seulement ${plural(n, "séance", "séances")} ${isToday ? (todayMode ? (n === 1 ? "restante aujourd'hui" : "restantes aujourd'hui") : "aujourd'hui") : "le " + wd} avec ces filtres.`,
   todayDot: "Aujourd'hui · ", tomorrowDot: "Demain · ", more: "Détails et carte", less: "Moins", onNow: "En cours", cancelled: "Annulée à cette date",
   fSession: "Séance", fType: "Type", fFor: "Pour", fRink: "Patinoire", fAddress: "Adresse", fCost: "Coût", fBooking: "Réservation", fNotes: "Remarques",
-  fBusy: "Achalandage", busy_quiet: "Généralement calme", busy_moderate: "Modéré", busy_busy: "Souvent achalandé",
+  fBusy: "Achalandage", busy_quiet: "Généralement calme", busy_moderate: "Modéré", busy_busy: "Souvent achalandé", busy_fills: "Souvent complet · réservez tôt",
   busySrc_regulars: "selon des habitués", busySrc_counts: "selon les inscriptions",
+  busyFillsNote: w => `complet avant le début lors de ${w} des semaines vérifiées`,
   busyCountsNote: (p, w) => `en moyenne ${p} % plein au début (${w} semaine${w > 1 ? "s" : ""} d'inscriptions)`,
   free: "Gratuit", seeRink: "Voir la patinoire", bkDrop: "Accès libre", bkDoor: "Accès libre · paiement sur place", bkWalk: "Sans réservation",
   bkSign: h => `Inscription ${h} h à l'avance`, bkBook: h => `Réservation en ligne, jusqu'à ${h} h à l'avance`, bkMon: "Préinscription (ouvre le lundi 6 h, une semaine avant)",
