@@ -860,6 +860,17 @@ const BOOK_LINKS = {
   "North Vancouver": "https://www.nvrc.ca/drop-in-schedules",
   "Delta": "https://cityofdelta.perfectmind.com/24140/Clients/BookMe4BookingPages/Classes?calendarId=c9b7ca71-56dc-43e3-aec7-d976239a5660&widgetId=0da93182-93fb-4314-87bd-a8ba4ee9a4c9&embed=False"
 };
+/* Vancouver: arena stick & puck, hockey and figure sessions are booked online (up to 3 days ahead).
+   The Book link searches that rink for the session's name + weekday, which lists just that weekly session's dates. */
+const VAN_CENTRE = { "Britannia Rink": 24, "Hillcrest Rink": 22, "Kerrisdale Cyclone Taylor Arena": 23, "Killarney Rink": 25,
+  "Kitsilano Rink": 26, "Sunset Rink": 27, "Trout Lake Rink": 28, "West End Rink": 9 };
+const VAN_WEEKDAY = { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" };
+const vanBookable = r => r.city === "Vancouver" && (["Stick & Puck", "Figure Skating"].includes(r.type) || (r.type === "Drop-in Hockey" && !/fun hockey/i.test(r.session)));
+function vanUrl(r) {
+  const kw = /^para/i.test(r.session) ? "Para Hockey" : /learn to play/i.test(r.session) ? "Learn to Play Hockey"
+    : r.session.replace(/\(.*?\)/g, "").replace(/[^A-Za-z ]+/g, " ").replace(/\s+/g, " ").trim();
+  return `https://anc.ca.apm.activecommunities.com/vancouver/activity/search?onlineSiteId=0&activity_keyword=${encodeURIComponent(kw + " " + VAN_WEEKDAY[r.day])}&center_ids=${VAN_CENTRE[r.rink] || ""}`;
+}
 function bookRule(r) {
   const b = r.booking || "", skate = SKATE.includes(r.type), n = r.notes || "";
   const flagged = /^(reserve|pre-register)/i.test(n);
@@ -868,7 +879,7 @@ function bookRule(r) {
   if (b.startsWith("Skates walk-in only")) return skate || r.type === "Figure Skating" ? ["bkWalk"] : ["bkBook", 72];
   if (b.startsWith("Public skate drop-in")) return skate || (r.type === "Drop-in Hockey" && b.includes("& puck &")) ? ["bkDrop"] : ["bkMon"];
   if (b.startsWith("Drop-in; hockey & some skates via NVRC")) return r.type === "Drop-in Hockey" || flagged ? ["bkNVRC"] : ["bkDrop"];
-  if (b.startsWith("Drop-in; some sessions bookable")) return flagged ? ["bkBook", 72] : ["bkDrop"];
+  if (b.startsWith("Drop-in; some sessions bookable")) return flagged || vanBookable(r) ? ["bkBook", 72] : ["bkDrop"];
   if (b.startsWith("Drop-in; 'Reserve'")) return flagged ? ["bkBook", 48] : ["bkDrop"];
   if (b.startsWith("Drop-in; limited-capacity")) return flagged ? ["bkBook", 72] : ["bkDrop"];
   if (b.startsWith("Drop-in; * sessions")) return flagged ? ["bkPre"] : ["bkDrop"];
@@ -883,7 +894,7 @@ const canlanUrl = r => { const f = (r.link || "").match(/facility=(\d+)/); if (!
   const t = r.type || ({ sp: "Stick & Puck" })[r.sport] || "";
   return `https://apps.daysmartrecreation.com/dash/x/canlan/event-registration?date=${r.iso || ""}&facility_ids=${f[1]}${t === "Stick & Puck" ? "&program_types=73" : ""}`; };
 const NO_BOOK = ["bkDrop", "bkDoor", "bkWalk", null];
-const bookLink = r => NO_BOOK.includes(bookRule(r)[0]) ? "" : r.priv ? canlanUrl(r) : (u => typeof u === "function" ? u(r) : u || "")(BOOK_LINKS[r.city]);
+const bookLink = r => NO_BOOK.includes(bookRule(r)[0]) ? "" : r.priv ? canlanUrl(r) : vanBookable(r) ? vanUrl(r) : (u => typeof u === "function" ? u(r) : u || "")(BOOK_LINKS[r.city]);
 const HTB_IDS = ["surrey", "richmond", "burnaby", "port-coquitlam", "coquitlam", "port-moody", "delta", "new-westminster", "north-vancouver", "vancouver", "maple-ridge"];
 const htbId = r => { const s = r.city.toLowerCase().replace(/[^a-z0-9]+/g, "-"); return r.priv || !HTB_IDS.includes(s) ? "canlan" : s; };
 const cardNote = r => (r.notes || "").replace(/^(reserve|pre-register)\s*;?\s*/i, "").replace(/^cancelled .*/i, "");

@@ -447,9 +447,20 @@ const BOOK = {
   "Maple Ridge": { gym: "https://www.mapleridge.ca/1484/Program-Registration" },
 };
 /* Does this session need booking? Same rules as the ice finder on the home page. */
+/* Vancouver: arena stick & puck, hockey and figure sessions are booked online (up to 3 days ahead).
+   The Book link searches that rink for the session's name + weekday, which lists just that weekly session's dates. */
+const VAN_CENTRE = { "Britannia Rink": 24, "Hillcrest Rink": 22, "Kerrisdale Cyclone Taylor Arena": 23, "Killarney Rink": 25,
+  "Kitsilano Rink": 26, "Sunset Rink": 27, "Trout Lake Rink": 28, "West End Rink": 9 };
+const VAN_WEEKDAY = { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" };
+const vanBookable = r => r.city === "Vancouver" && (r.sport === "sp" || (r.sport === "skate" && /figure/i.test(r.session)) || (r.sport === "hockey" && !/fun hockey/i.test(r.session)));
+function vanUrl(r) {
+  const kw = /^para/i.test(r.session) ? "Para Hockey" : /learn to play/i.test(r.session) ? "Learn to Play Hockey"
+    : r.session.replace(/\(.*?\)/g, "").replace(/[^A-Za-z ]+/g, " ").replace(/\s+/g, " ").trim();
+  return `https://anc.ca.apm.activecommunities.com/vancouver/activity/search?onlineSiteId=0&activity_keyword=${encodeURIComponent(kw + " " + VAN_WEEKDAY[r.day])}&center_ids=${VAN_CENTRE[r.rink] || ""}`;
+}
 function needsBook(r) {
   const b = r.booking || "", n = r.notes || "", flagged = /^(reserve|pre-register|registered visit)/i.test(n);
-  if (r.priv) return true;
+  if (r.priv || vanBookable(r)) return true;
   if (!ICE.has(r.sport)) {
     if (["Surrey", "Coquitlam", "Delta", "New Westminster", "Port Coquitlam", "Port Moody", "Burnaby"].includes(r.city)) return true;
     return flagged;  // Maple Ridge "Pre-register", Richmond "Registered visit"
@@ -469,6 +480,7 @@ const canlanUrl = r => { const f = (r.link || "").match(/facility=(\d+)/); if (!
 function bookUrl(r) {
   if (!needsBook(r)) return "";
   if (r.priv) return canlanUrl(r);
+  if (vanBookable(r)) return vanUrl(r);
   const B = BOOK[r.city] || {};
   if (!ICE.has(r.sport)) return B.gym || "";
   if (r.city === "Richmond" && r.venue === "Richmond Ice Centre") return B.ric;
