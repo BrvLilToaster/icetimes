@@ -84,7 +84,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-si
 .htb:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
 .need{font:600 12px/1 "IBM Plex Sans",system-ui,sans-serif;border-radius:4px;padding:4px 7px}
 .need-yes{background:#fde9d9;color:#a84300}.need-some{background:#e8f0fb;color:#0b5cad}.need-no{background:#e3f4ea;color:#1f7a4a}
-.htb-links{display:flex;flex-wrap:wrap;gap:8px}.cta.sm{font:600 14px/1 "IBM Plex Sans",system-ui,sans-serif;text-transform:none;letter-spacing:0;padding:10px 14px;margin:4px 0}
+.htb-links{display:flex;flex-wrap:wrap;gap:8px}.htb h3{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:12px 0 2px}.htb .sp{border-top:1px solid var(--line);margin-top:10px}.cta.alt{background:#fff;color:var(--accent);border:1px solid var(--accent)}.cta.sm{font:600 14px/1 "IBM Plex Sans",system-ui,sans-serif;text-transform:none;letter-spacing:0;padding:10px 14px;margin:4px 0}
 """
 
 PIN = '<svg viewBox="0 0 26 34" aria-hidden="true"><path d="M13 1C6.4 1 1 6.3 1 12.9 1 22 13 33 13 33s12-11 12-20.1C25 6.3 19.6 1 13 1z" fill="#d7262e"/><ellipse cx="13" cy="12.5" rx="6.5" ry="3.4" fill="#0b2d6b"/><ellipse cx="13" cy="11.3" rx="6.5" ry="3.4" fill="#fff"/></svg>'
@@ -236,6 +236,23 @@ HOW_TO_BOOK = [
      [("Scotia Barn (Burnaby)", "https://www.canlansports.com/drop-ins/?facility=1"), ("Langley Twin Rinks", "https://www.canlansports.com/drop-ins/?facility=2"), ("North Shore", "https://www.canlansports.com/drop-ins/?facility=8")], ""),
 ]
 HTB_IDS = {x[0] for x in HOW_TO_BOOK}
+# Gym & court sports (basketball, volleyball, badminton, pickleball, etc.) for the /sports/ finder.
+SPORTS_BOOK = {
+    "surrey": ("Most drop-in sports open for sign-up 72 hours ahead; pickleball opens Sundays at 8:30 pm. If you're not there within 10 minutes of the start, your spot goes to the waitlist.",
+               [("Surrey drop-in activities", "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4?widgetId=b4059e75-9755-401f-a7b5-d7c75361420d")]),
+    "richmond": ("Gym and racquet drop-ins are walk-in. A few sessions are registered visits or need a phone call; the finder notes which.",
+                 [("Richmond registration", "https://www.richmond.ca/parks-recreation/registration.htm")]),
+    "burnaby": ("Drop-in sports: reserving a spot on WebReg is recommended.", [("Burnaby WebReg", "https://www.burnaby.ca/webreg")]),
+    "port-coquitlam": ("Sports drop-ins are pre-registered too, opening 2 days ahead.", [("Port Coquitlam registration", "https://www.portcoquitlam.ca/register")]),
+    "coquitlam": ("Adult gym sessions: pre-register online 48 hours ahead.", [("Coquitlam drop-in booking", "https://www.coquitlam.ca/979")]),
+    "port-moody": ("Book 25 hours ahead online, or by phone.", [("Port Moody registration", "https://www.portmoody.ca/registration")]),
+    "delta": ("Pre-register online up to 72 hours ahead.", [("Delta drop-in activities", "https://cityofdelta.perfectmind.com/24140/Clients/BookMe4BookingPages/Classes?calendarId=c9b7ca71-56dc-43e3-aec7-d976239a5660&widgetId=0da93182-93fb-4314-87bd-a8ba4ee9a4c9&embed=False")]),
+    "new-westminster": ("Reserve online 72 hours ahead (residents) or 48 hours ahead (everyone).", [("New Westminster registration", "https://www.newwestcity.ca/register")]),
+    "north-vancouver": ("Mostly drop-in; some sessions can be booked online.", []),
+    "vancouver": ("Mostly drop-in; some community centres let you reserve a spot online.", []),
+    "maple-ridge": ("Pickleball and badminton are pre-registered: booking opens 50 hours before each timeslot, and you check in on site. Basketball is pre-registered too.",
+                    [("Maple Ridge registration", "https://www.mapleridge.ca/1484/Program-Registration")]),
+}
 NEED = {"yes": "Booking needed", "some": "Some sessions", "no": "Just show up"}
 
 
@@ -246,13 +263,17 @@ def how_to_book_body():
         st = "".join(f"<li>{e(s)}</li>" for s in steps)
         ln = "".join(f'<a class="cta sm" href="{e(u)}" target="_blank" rel="noopener">{e(l)} ↗</a>' for l, u in links)
         ph = f'<p class="muted">Or call {e(phone)}.</p>' if phone else ""
+        sp = SPORTS_BOOK.get(i)
+        if sp:
+            sl = "".join(f'<a class="cta sm alt" href="{e(u)}" target="_blank" rel="noopener">{e(l)} ↗</a>' for l, u in sp[1])
+            ph += f'<div class="sp"><h3>Gym &amp; court sports</h3><p>{e(sp[0])}</p>{f"<div class=htb-links>{sl}</div>" if sl else ""}</div>'
         secs.append(f'<section class="htb" id="{i}"><h2>{e(name)} <span class="need need-{n}">{NEED[n]}</span></h2>'
-                    f'<p>{e(summary)}</p>{f"<ul>{st}</ul>" if st else ""}<div class="htb-links">{ln}</div>{ph}</section>')
+                    f'<h3>Ice</h3><p>{e(summary)}</p>{f"<ul>{st}</ul>" if st else ""}<div class="htb-links">{ln}</div>{ph}</section>')
     tips = ('<ul><li><b>Make your account first.</b> Each city has its own free account, and setting one up takes a few minutes, so do it before booking opens.</li>'
-            '<li><b>Set a reminder</b> for when booking opens. Popular stick &amp; puck and hockey times can fill within minutes.</li>'
+            '<li><b>Set a reminder</b> for when booking opens. Popular stick &amp; puck, hockey and pickleball times can fill within minutes.</li>'
             '<li><b>Cancel if you can\'t go.</b> Some cities charge for no-shows.</li></ul>')
-    return (f'<p class="lead">Many drop-in skates are walk-in, but most stick &amp; puck and drop-in hockey needs a spot booked ahead. '
-            f'Here\'s how each city does it. In the finder, sessions that need booking have a <b>Book</b> button.</p>'
+    return (f'<p class="lead">Many drop-in skates and gym times are walk-in, but most stick &amp; puck, drop-in hockey and a lot of gym sports (pickleball especially) need a spot booked ahead. '
+            f'Here\'s how each city does it, for ice and for gym &amp; court sports. In both finders (<a href=\"/\">ice times</a> and <a href=\"/sports/\">drop-in sports</a>), sessions that need booking have a <b>Book</b> button.</p>'
             f'<nav class="toc" aria-label="Cities">{toc}</nav><h2>Before you book</h2>{tips}{"".join(secs)}'
             f'<p class="muted">Booking rules checked November 2026. Cities change them now and then, so trust the city\'s page if it says something different.</p>')
 
@@ -316,14 +337,14 @@ def main():
         paths.append(f"{sl}/")
 
     # how-to-book guide
-    hb_title = "How to Book Drop-in Hockey, Stick & Puck and Skating in Metro Vancouver | Open Ice Finder"
-    hb_desc = "Which Lower Mainland rinks need you to book drop-in ice, when booking opens in each city, and direct links to each booking page."
+    hb_title = "How to Book Drop-in Hockey, Skating, Pickleball & Gym Sports in Metro Vancouver | Open Ice Finder"
+    hb_desc = "Which Lower Mainland drop-in ice and gym sports need booking, when booking opens in each city, and direct links to each booking page."
     hb_ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": "Open Ice Finder", "item": f"{SITE}/"},
         {"@type": "ListItem", "position": 2, "name": "How to book", "item": f"{SITE}/how-to-book/"}]}
     os.makedirs(os.path.join(ROOT, "how-to-book"), exist_ok=True)
     open(os.path.join(ROOT, "how-to-book", "index.html"), "w", encoding="utf-8").write(
-        page("how-to-book/", hb_title, hb_desc, "How to book drop-in ice", crumbs("How to book"), how_to_book_body(), hb_ld))
+        page("how-to-book/", hb_title, hb_desc, "How to book drop-in ice & sports", crumbs("How to book"), how_to_book_body(), hb_ld))
     paths.append("how-to-book/")
 
     # remove pages for cities/types that dropped out of the data

@@ -178,6 +178,10 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .side { text-align: right; font-size: 13px; display: grid; gap: 4px; justify-items: end; }
 .km { font: 700 18px var(--font-display); }
 .cost { max-width: 210px; }
+.book { display: inline-flex; align-items: center; align-self: center; gap: 3px; padding: 5px 10px; border-radius: 6px; background: var(--accent); color: var(--accent-ink) !important; font: 600 13px var(--font-body, system-ui); text-decoration: none; white-space: nowrap; }
+.book svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.book:hover { filter: brightness(1.08); }
+.htb-link { white-space: nowrap; color: var(--accent); }
 .more { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .card.cancelled { opacity: .55; }
 .details { grid-column: 1 / -1; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; cursor: default; }
@@ -417,6 +421,46 @@ const VALID_TO = { "Burnaby|gym": "2026-12-17", "Surrey|gym": "2026-12-18", "Ric
   "Coquitlam|ice": "2026-11-19", "Richmond|ice": "2026-12-23", "Burnaby|ice": "2026-12-20", "Surrey|ice": "2026-12-18", "Port Coquitlam|ice": "2026-12-18", "New Westminster|ice": "2026-12-18" };
 /* Captured as one week and repeated as a typical week. */
 const WEEKLY = { "Vancouver|gym": "Nov 22–28", "North Vancouver|gym": "Nov 23–29", "Delta|gym": "Nov 22–28", "Port Moody|gym": "Nov 22–28", "Vancouver|ice": "Nov 15–21", "Delta|ice": "Nov 15–21", "Port Moody|ice": "Nov 15–21", "North Vancouver|ice": "Nov 15–21" };
+/* ---------- Book button: only for sessions that need a spot booked; full rules on /how-to-book/ ---------- */
+const BOOK = {
+  "Vancouver": { ice: "https://anc.ca.apm.activecommunities.com/vancouver/calendars" },
+  "Burnaby": { ice: "https://www.burnaby.ca/webreg", gym: "https://www.burnaby.ca/webreg" },
+  "Richmond": { ice: "https://www.richmond.ca/parks-recreation/about/arenas/fees.htm", gym: "https://www.richmond.ca/parks-recreation/registration.htm" },
+  "Surrey": { hockey: "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?calendarId=7333623a-774c-4e63-aaac-b85a2cfbd17d&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False", figure: "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?calendarId=5b599b6d-d54f-43c1-b86a-e962d9bf107b&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False", gym: "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4?widgetId=b4059e75-9755-401f-a7b5-d7c75361420d" },
+  "Coquitlam": { ice: "https://www.coquitlam.ca/979", gym: "https://www.coquitlam.ca/979" },
+  "Port Coquitlam": { ice: "https://www.portcoquitlam.ca/register", gym: "https://www.portcoquitlam.ca/register" },
+  "Port Moody": { ice: "https://cityofportmoody.perfectmind.com/Contacts/BookMe4BookingPages/Classes?calendarId=da287199-756a-422e-8fbc-b2e5063b77f8&widgetId=15f6af07-39c5-473e-b053-96653f77a406&embed=False", gym: "https://www.portmoody.ca/registration" },
+  "New Westminster": { ice: "https://www.newwestcity.ca/register", gym: "https://www.newwestcity.ca/register" },
+  "North Vancouver": { ice: "https://www.nvrc.ca/drop-in-schedules" },
+  "Delta": { ice: "https://cityofdelta.perfectmind.com/24140/Clients/BookMe4BookingPages/Classes?calendarId=c9b7ca71-56dc-43e3-aec7-d976239a5660&widgetId=0da93182-93fb-4314-87bd-a8ba4ee9a4c9&embed=False", gym: "https://cityofdelta.perfectmind.com/24140/Clients/BookMe4BookingPages/Classes?calendarId=c9b7ca71-56dc-43e3-aec7-d976239a5660&widgetId=0da93182-93fb-4314-87bd-a8ba4ee9a4c9&embed=False" },
+  "Maple Ridge": { gym: "https://www.mapleridge.ca/1484/Program-Registration" },
+};
+/* Does this session need booking? Same rules as the ice finder on the home page. */
+function needsBook(r) {
+  const b = r.booking || "", n = r.notes || "", flagged = /^(reserve|pre-register|registered visit)/i.test(n);
+  if (r.priv) return true;
+  if (!ICE.has(r.sport)) {
+    if (["Surrey", "Coquitlam", "Delta", "New Westminster", "Port Coquitlam", "Port Moody", "Burnaby"].includes(r.city)) return true;
+    return flagged;  // Maple Ridge "Pre-register", Richmond "Registered visit"
+  }
+  const figure = /figure/i.test(r.session), skate = r.sport === "skate" && !figure;
+  if (b.startsWith("Hockey/stick & puck/figure")) return !skate;
+  if (b.startsWith("Skates walk-in only")) return r.sport !== "skate";
+  if (b.startsWith("Public skate drop-in")) return !(skate || (r.sport === "hockey" && b.includes("& puck &")));
+  if (b.startsWith("Drop-in; hockey & some skates via NVRC")) return r.sport === "hockey" || flagged;
+  if (b.startsWith("Pre-register")) return true;
+  return flagged;
+}
+function bookUrl(r) {
+  if (!needsBook(r)) return "";
+  if (r.priv) return r.link || "";
+  const B = BOOK[r.city] || {};
+  if (!ICE.has(r.sport)) return B.gym || "";
+  if (r.city === "Surrey") return /figure/i.test(r.session) ? B.figure : B.hockey;
+  return B.ice || "";
+}
+const HTB = ["surrey", "richmond", "burnaby", "port-coquitlam", "coquitlam", "port-moody", "delta", "new-westminster", "north-vancouver", "vancouver", "maple-ridge"];
+const htbId = r => { const x = r.city.toLowerCase().replace(/[^a-z0-9]+/g, "-"); return r.priv || !HTB.includes(x) ? "canlan" : x; };
 const kindOf = r => ICE.has(r.sport) ? "ice" : "gym";
 const UPDATED = "Nov 22, 2026";
 
@@ -453,7 +497,7 @@ const L = {
   few: n => `Only ${plural(n, "session", "sessions")} with these filters.`,
   todayDot: "Today · ", tomorrowDot: "Tomorrow · ", toTime: "to", more: "Details", less: "Less", onNow: "On now", cancelled: "Cancelled on this date",
   fSession: "Session", fSport: "Sport", fFor: "For", fPlace: "Place", fRoom: "Room", fAddress: "Address", fCost: "Cost", fBooking: "Booking", fNotes: "Notes",
-  directions: "Directions", openMaps: "Open in Google Maps", official: "Official schedule", bookOnline: "Book online", privTag: "Private rink · book online",
+  directions: "Directions", openMaps: "Open in Google Maps", official: "Official schedule", bookOnline: "Book online", bookBtn: "Book", bookAria: (s, v) => `Book ${s} at ${v} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`, htbCity: c => `How booking works in ${c}`, htbAll: "How to book: rules and links for each city", privTag: "Private rink · book online",
   alsoAt: d => `Everything here on ${d}`, reportLink: "Report a problem with this session",
   shareSite: "Share", shareBtn: "Share", shareSessH: "Share this session", shareSiteH: "Share Drop-in Finder", shareSportH: s => `Share ${s} times`,
   shNative: "Share with your phone's apps…", shCopy: "Copy link", shCopied: "Link copied ✓", shText: "Text message", shEmail: "Email",
@@ -499,7 +543,7 @@ const L = {
   few: n => `Seulement ${plural(n, "séance", "séances")} avec ces filtres.`,
   todayDot: "Aujourd'hui · ", tomorrowDot: "Demain · ", toTime: "à", more: "Détails", less: "Moins", onNow: "En cours", cancelled: "Annulée à cette date",
   fSession: "Séance", fSport: "Sport", fFor: "Pour", fPlace: "Lieu", fRoom: "Salle", fAddress: "Adresse", fCost: "Coût", fBooking: "Réservation", fNotes: "Remarques",
-  directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", official: "Horaire officiel", bookOnline: "Réserver en ligne", privTag: "Patinoire privée · réservation en ligne",
+  directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", official: "Horaire officiel", bookOnline: "Réserver en ligne", bookBtn: "Réserver", bookAria: (s, v) => `Réserver ${s} à ${v} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`, htbCity: c => `Comment réserver à ${c}`, htbAll: "Comment réserver : règles et liens par ville", privTag: "Patinoire privée · réservation en ligne",
   alsoAt: d => `Tout ce qui a lieu ici le ${d}`, reportLink: "Signaler un problème avec cette séance",
   shareSite: "Partager", shareBtn: "Partager", shareSessH: "Partager cette séance", shareSiteH: "Partager Drop-in Finder", shareSportH: s => `Partager : ${s}`,
   shNative: "Partager avec les applis du téléphone…", shCopy: "Copier le lien", shCopied: "Lien copié ✓", shText: "Texto", shEmail: "Courriel",
@@ -649,6 +693,7 @@ function card(r) {
     <div class="side">
       ${r.dist != null ? `<span class="km">${r.dist.toFixed(1)} km</span>` : ""}
       <span class="cost">${esc(r.cost)}</span>
+      ${bookUrl(r) ? `<a class="book" data-book href="${bookUrl(r)}" target="_blank" rel="noopener" aria-label="${esc(t("bookAria", r.session, r.venue))}">${esc(t("bookBtn"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a>` : ""}
       <span class="more"><i class="chev"></i>${isOpen ? esc(t("less")) : esc(t("more"))}</span>
     </div>
     ${isOpen ? details(r) : ""}
@@ -664,12 +709,12 @@ function details(r) {
       <dl class="facts">
         ${fact(t("fSession"), r.session)}${fact(t("fSport"), spLbl(r.sport))}
         ${fact(t("fFor"), [r.aud !== "all" ? t("whoTag")[r.aud] : "", t("gTag")[r.gender] || "", r.ages].filter(Boolean).join(" · "))}
-        ${fact(t("fPlace"), r.venue)}${fact(t("fRoom"), r.room)}${fact(t("fAddress"), r.address)}${fact(t("fCost"), r.cost)}${fact(t("fBooking"), r.booking)}${fact(t("fNotes"), r.notes)}
+        ${fact(t("fPlace"), r.venue)}${fact(t("fRoom"), r.room)}${fact(t("fAddress"), r.address)}${fact(t("fCost"), r.cost)}${r.booking ? `<dt>${esc(t("fBooking"))}</dt><dd>${esc(r.booking)} <a class="htb-link" href="/how-to-book/#${htbId(r)}">${esc(t("htbCity", r.priv ? "Canlan" : r.city))}</a></dd>` : ""}${fact(t("fNotes"), r.notes)}
       </dl>
       <div class="btns">
         <a class="btn primary" href="${gmaps(r, true)}" target="_blank" rel="noopener">${esc(t("directions"))}</a>
         <a class="btn" href="${gmaps(r, false)}" target="_blank" rel="noopener">${esc(t("openMaps"))}</a>
-        ${link ? `<a class="btn" href="${link}" target="_blank" rel="noopener">${esc(r.priv ? t("bookOnline") : t("official"))}</a>` : ""}
+        ${bookUrl(r) ? `<a class="btn" data-book href="${bookUrl(r)}" target="_blank" rel="noopener">${esc(r.priv ? t("bookOnline") : t("bookCity", r.city))}</a>` : ""}${link && !(r.priv && r.link) ? `<a class="btn" href="${link}" target="_blank" rel="noopener">${esc(t("official"))}</a>` : ""}
         <button type="button" class="btn" data-share="${r.id}|${r.iso}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>${esc(t("shareBtn"))}</button>
       </div>
       <a class="report" href="${mailto(t("repSubject", r.session, r.venue), t("repBody", r.session, r.venue, r.city, dTxt, fmt(r.start) + "–" + fmt(r.end)))}">${esc(t("reportLink"))}</a>
@@ -763,6 +808,7 @@ const slug = s => norm(s).replace(/ /g, "-");
 const skey = r => `${r.sport}-${r.start}-${slug(r.venue)}`;
 const touch = () => matchMedia("(pointer: coarse)").matches;
 let shareData = null;
+document.addEventListener("click", e => { const a = e.target.closest("a[data-book]"); if (!a) return; const c = a.closest(".card"), r = c ? ROWS[+c.dataset.k.split("|")[0]] : null; try { (window.dataLayer = window.dataLayer || []).push({ event: "book_online", ice_city: r ? r.city : "", ice_type: r ? r.sport : "", ice_rink: r ? r.venue : "" }); } catch {} });
 function track(method) { try { (window.dataLayer = window.dataLayer || []).push({ event: "share", method, content_type: shareData.kind }); } catch {} }
 function sessionShare(r) {
   const d = dateFmt(r.dateObj, { weekday: "short", month: "short", day: "numeric" });
@@ -850,7 +896,7 @@ function buildFooter() {
   <div class="fcols">
     <div><h3>${esc(t("aboutH"))}</h3><p>${esc(t("aboutP"))}</p><h3 style="margin-top:14px">${esc(t("coverH"))}</h3><p>${esc(t("coverP"))}</p></div>
     <div><h3>${esc(t("srcH"))}</h3><p>${esc(t("srcP"))}</p><ul>${src.map(([n, u]) => `<li><a href="${u}" target="_blank" rel="noopener">${esc(n)}</a></li>`).join("")}</ul></div>
-    <div><h3>${esc(t("infoH"))}</h3>${det("discH", "discP")}${det("privH", "privP")}</div>
+    <div><h3>${esc(t("infoH"))}</h3><p><a href="/how-to-book/">${esc(t("htbAll"))}</a></p>${det("discH", "discP")}${det("privH", "privP")}</div>
   </div>
   <div class="fbase"><span>${esc(t("copyright", new Date().getFullYear()))}</span><span>${esc(t("notAffiliated"))}</span></div>`;
 }
