@@ -457,9 +457,13 @@ function needsBook(r) {
   if (b.startsWith("Pre-register")) return true;
   return flagged;
 }
+/* Canlan: open the rink's DaySmart drop-in list on that session's date (stick & puck filtered with program_types=73). */
+const canlanUrl = r => { const f = (r.link || "").match(/facility=(\d+)/); if (!f) return r.link || "";
+  const t = r.type || ({ sp: "Stick & Puck" })[r.sport] || "";
+  return `https://apps.daysmartrecreation.com/dash/x/canlan/event-registration?date=${r.iso || ""}&facility_ids=${f[1]}${t === "Stick & Puck" ? "&program_types=73" : ""}`; };
 function bookUrl(r) {
   if (!needsBook(r)) return "";
-  if (r.priv) return r.link || "";
+  if (r.priv) return canlanUrl(r);
   const B = BOOK[r.city] || {};
   if (!ICE.has(r.sport)) return B.gym || "";
   if (r.city === "Surrey") return /figure/i.test(r.session) ? B.figure : B.hockey;

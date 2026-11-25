@@ -865,8 +865,12 @@ function bookRule(r) {
   return [null, b];
 }
 function bookShort(r) { const [k, a] = bookRule(r); return k ? t(k, a) : a; }
+/* Canlan: open the rink's DaySmart drop-in list on that session's date (stick & puck filtered with program_types=73). */
+const canlanUrl = r => { const f = (r.link || "").match(/facility=(\d+)/); if (!f) return r.link || "";
+  const t = r.type || ({ sp: "Stick & Puck" })[r.sport] || "";
+  return `https://apps.daysmartrecreation.com/dash/x/canlan/event-registration?date=${r.iso || ""}&facility_ids=${f[1]}${t === "Stick & Puck" ? "&program_types=73" : ""}`; };
 const NO_BOOK = ["bkDrop", "bkDoor", "bkWalk", null];
-const bookLink = r => NO_BOOK.includes(bookRule(r)[0]) ? "" : r.priv ? r.link : (u => typeof u === "function" ? u(r) : u || "")(BOOK_LINKS[r.city]);
+const bookLink = r => NO_BOOK.includes(bookRule(r)[0]) ? "" : r.priv ? canlanUrl(r) : (u => typeof u === "function" ? u(r) : u || "")(BOOK_LINKS[r.city]);
 const HTB_IDS = ["surrey", "richmond", "burnaby", "port-coquitlam", "coquitlam", "port-moody", "delta", "new-westminster", "north-vancouver", "vancouver", "maple-ridge"];
 const htbId = r => { const s = r.city.toLowerCase().replace(/[^a-z0-9]+/g, "-"); return r.priv || !HTB_IDS.includes(s) ? "canlan" : s; };
 const cardNote = r => (r.notes || "").replace(/^(reserve|pre-register)\s*;?\s*/i, "").replace(/^cancelled .*/i, "");
