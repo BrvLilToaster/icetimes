@@ -664,7 +664,7 @@ def main():
     paths += more_paths
 
     # remove pages for cities/types that dropped out of the data
-    keep = {p.strip("/") for p in paths} | {"sports", "places"}
+    keep = {p.strip("/") for p in paths} | {"sports", "places", "nyc"}  # nyc: separate NYC finder, not built here
     for d in os.listdir(ROOT):
         fp = os.path.join(ROOT, d, "index.html")
         if os.path.isdir(os.path.join(ROOT, d)) and os.path.exists(fp) and d not in keep and d not in {"tools", ".git"}:
@@ -686,7 +686,7 @@ def main():
         open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8").write(idx2)
 
     today = datetime.date.today().isoformat()
-    urls = [SITE + "/", SITE + "/sports/"] + [f"{SITE}/{p}" for p in paths]  # /sports/ is the multi-sport Drop-in Finder
+    urls = [SITE + "/", SITE + "/sports/", SITE + "/nyc/"] + [f"{SITE}/{p}" for p in paths]  # /sports/ is the multi-sport Drop-in Finder; /nyc/ the NYC finder
     sm = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     sm += [f"  <url><loc>{u}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq></url>" for u in urls]
     sm.append("</urlset>")
