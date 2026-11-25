@@ -545,7 +545,7 @@ const isFav = r => FAV.s.has(favKey(r)) || FAV.r.has(r.rink);
 const favCount = () => DATA.filter(r => FAV.s.has(favKey(r))).length + [...FAV.r].filter(k => DATA.some(r => r.rink === k)).length;
 const GENDER_TAG = new Proxy({}, { get: (_, k) => t("gTag")[k] });
 const GENDER_HINT = new Proxy({ any: 1, open: 1, women: 1 }, { get: (o, k) => k in o ? t("gHint")[k] : undefined });
-const state = { types: new Set(TYPES.map(t => t[0])), mode: "city", city: "All", origin: "Vancouver", radius: 25, gender: "any", locSet: false, daySet: false, week: false, typeTouched: false,
+const state = { types: new Set(TYPES.map(t => t[0])), mode: "near", city: "All", origin: "", radius: 25, gender: "any", locSet: false, daySet: false, week: false, typeTouched: false,
   date: isoToday(), from: 360, to: 1440, todayMode: false };
 
 function isoToday() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
@@ -557,7 +557,10 @@ function km(a, b) { const R = 6371, toR = x => x*Math.PI/180; const dLat = toR(b
   const s = Math.sin(dLat/2)**2 + Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.sqrt(s)); }
 function norm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
 /* Where distances are measured from in "Near me": the device's location (never saved) or the place typed. */
-function originPlace() { return state.geo ? [t("myLoc"), state.geo[0], state.geo[1]] : matchPlace(state.origin); }
+function originPlace() { return state.geo ? [t("myLoc"), state.geo[0], state.geo[1]] : state.origin ? matchPlace(state.origin) : null; }
+/* "Near me" is the default tab, but it only narrows results once there's a location or a typed place. */
+const nearOn = () => state.mode === "near" && !!originPlace();
+const locFiltered = () => state.mode === "city" ? state.city !== "All" : nearOn();
 const originName = () => state.geo ? t("myLoc") : state.origin;
 function matchPlace(q) {
   const n = norm(q); if (!n) return null;
@@ -869,9 +872,9 @@ function syncControls() {
   $("cityBox").hidden = state.mode !== "city"; $("nearBox").hidden = state.mode !== "near";
   buildPeriodChips(); buildDayChips();
 }
-function save() { try { localStorage.setItem("iceFinder", JSON.stringify({ types: [...state.types], mode: state.mode, city: state.city, origin: state.origin, radius: state.radius, gender: state.gender })); } catch {} }
+function save() { try { localStorage.setItem("iceFinder", JSON.stringify({ types: [...state.types], mode: state.mode, city: state.city, origin: state.originPicked ? state.origin : "", op: !!state.originPicked, radius: state.radius, gender: state.gender })); } catch {} }
 /* Every visit starts unfiltered: today, all rinks. Only the typed place and radius are remembered, to pre-fill "Near me" when the user picks it. */
-function restore() { try { const s = JSON.parse(localStorage.getItem("iceFinder") || "null"); if (s) { if (matchPlace(s.origin)) state.origin = s.origin; if (s.radius >= 2 && s.radius <= 60) state.radius = s.radius; } } catch {} }
+function restore() { try { const s = JSON.parse(localStorage.getItem("iceFinder") || "null"); if (s) { if (s.op && matchPlace(s.origin)) { state.origin = s.origin; state.originPicked = true; locChanged(true); } if (s.radius >= 2 && s.radius <= 60) state.radius = s.radius; } } catch {} }
 
 /* ---------- short card text (full wording stays in the details) ---------- */
 const sameName = r => r.session.trim().toLowerCase() === r.type.toLowerCase();
@@ -950,7 +953,7 @@ function rowsFor(iso, useLoc, place, nowMin) {
   else if (state.gender === "women") rows = rows.filter(r => r.gender === "women" || r.gender === "women+gd");
   rows = rows.map(r => ({ ...r, iso, dateObj: date, dist: RINKS[r.rink] ? km([place[1], place[2]], RINKS[r.rink]) : null }));
   if (useLoc) { if (state.mode === "city") { if (state.city !== "All") rows = rows.filter(r => r.city === state.city); }
-    else rows = rows.filter(r => r.dist != null && r.dist <= state.radius); }
+    else if (nearOn()) rows = rows.filter(r => r.dist != null && r.dist <= state.radius); }
   rows = rows.filter(r => r.end > state.from && r.start < state.to);
   if (iso === isoToday()) rows = rows.filter(r => r.end > nowMin);
   rows.forEach(r => r.cancelled = cancelledOn(r.notes, date));
@@ -977,13 +980,13 @@ function render() {
     $("sumSub").textContent = `${t("rinks", rinkCount)} · ${browse ? t("tNext7") : dateFmt(parseISO(state.date), { weekday: "long", month: "short", day: "numeric" })}`;
   } else if (browse) {
     $("sumTitle").textContent = `${t("sess", open.length)} · ${t("tNext7")}`;
-    const whereW = !state.locSet ? t("everyCity") : state.mode === "city" ? (state.city === "All" ? t("allCitiesL") : state.city) : t("withinL", state.radius, originName());
+    const whereW = !state.locSet && !nearOn() ? t("everyCity") : !locFiltered() ? t("allCitiesL") : state.mode === "city" ? state.city : t("withinL", state.radius, originName());
     $("sumSub").textContent = `${t("rinks", rinkCount)} · ${whereW}${state.from === 360 && state.to === 1440 ? "" : " · " + timeTxt}`;
   } else {
     const date = parseISO(state.date);
     const dateLabel = dateFmt(date, { weekday: "long", month: "short", day: "numeric" });
     $("sumTitle").textContent = `${t("sess", open.length)} · ${state.todayMode ? t("restToday") : dateLabel}`;
-    const where = state.mode === "city" ? (state.city === "All" ? t("allCitiesL") : state.city) : t("withinL", state.radius, originName());
+    const where = !locFiltered() ? t("allCitiesL") : state.mode === "city" ? state.city : t("withinL", state.radius, originName());
     $("sumSub").textContent = `${t("rinks", rinkCount)} · ${where} · ${timeTxt}`;
   }
 
@@ -999,7 +1002,7 @@ function render() {
     const wb = $("weekBtn"); if (wb) wb.onclick = () => { state.week = true; state.daySet = true; state.todayMode = false; state.date = isoToday(); syncControls(); render(); };
     return; }
   if (!rows.length) {
-    const whereE = state.mode === "city" ? (state.city === "All" ? "" : t("whereIn", state.city)) : t("whereWithin", state.radius, originName());
+    const whereE = !locFiltered() ? "" : state.mode === "city" ? t("whereIn", state.city) : t("whereWithin", state.radius, originName());
     const isTodayE = state.date === todayISO;
     const whenE = browse ? t("whenNext7") : isTodayE ? t("whenLeftToday") : t("whenOn", dateFmt(parseISO(state.date), { weekday: "long", month: "short", day: "numeric" }));
     const side = t("side", matchMedia("(max-width: 820px)").matches);
@@ -1024,7 +1027,7 @@ function render() {
       </div>
       <div class="side">
         <button type="button" class="star" data-stop data-fav="${r.id}" data-track="save_session" aria-pressed="${FAV.s.has(favKey(r))}" aria-label="${esc(t(FAV.s.has(favKey(r)) ? "favSOn" : "favS", r.session))}" title="${esc(t(FAV.s.has(favKey(r)) ? "favSOn" : "favS", r.session))}">${FAV.s.has(favKey(r)) ? "★" : "☆"}</button>
-        ${state.mode === "near" && r.dist != null ? `<span class="km">${r.dist.toFixed(1)} km</span>` : ""}
+        ${nearOn() && r.dist != null ? `<span class="km">${r.dist.toFixed(1)} km</span>` : ""}
         <span class="cost" title="${esc(r.cost)}">${esc(costShort(r.cost))}</span>${bookLink(r) ? `<a class="book" data-track="book_online" href="${bookLink(r)}" target="_blank" rel="noopener" aria-label="${esc(t("bookAria", r.session, r.rink))}">${esc(t("bookBtn"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a>` : ""}
         ${busyOf(r) ? `<span class="busy busy-${busyOf(r).level}"><i></i>${esc(t("busy_" + busyOf(r).level))}</span>` : ""}
         <span class="more"><i class="chev"></i>${isOpen ? t("less") : esc(t("more"))}</span>
@@ -1087,13 +1090,13 @@ const MOB = (() => {
   done.onclick = () => { set(false); closePop(); $("sumTitle").scrollIntoView({ block: "start", behavior: "smooth" }); };
   return { toggle, done, set };
 })();
-const activeCount = () => (state.mode === "near" || state.city !== "All") + (isBrowse() || state.date !== isoToday() || state.todayMode) + (state.from !== 360 || state.to !== 1440) + (state.gender !== "any");
+const activeCount = () => locFiltered() + (isBrowse() || state.date !== isoToday() || state.todayMode) + (state.from !== 360 || state.to !== 1440) + (state.gender !== "any");
 const chevI = `<i class="chev"></i>`;
 function tomorrowISO() { const d = new Date(); d.setDate(d.getDate() + 1); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 const SUM = {
   type: () => state.types.size === TYPES.length ? t("allTypes") : state.types.size === 0 ? t("noneTypes") : state.types.size === 1 ? typeLbl([...state.types][0]) : t("nTypes", state.types.size),
   gender: () => ({ any: t("gAny"), open: t("gOpen"), women: t("gWomen") })[state.gender],
-  loc: () => state.mode === "city" ? (state.city === "All" ? t("allCitiesS") : state.city) : t("withinKm", state.radius, originName()),
+  loc: () => !locFiltered() ? t("allCitiesS") : state.mode === "city" ? state.city : t("withinKm", state.radius, originName()),
   day: () => { if (isBrowse()) return t("next7"); if (state.date === isoToday()) return t("today"); if (state.date === tomorrowISO()) return t("tomorrow"); return dateFmt(parseISO(state.date), { weekday: "short", month: "short", day: "numeric" }); },
   time: () => { if (state.todayMode) return t("fromNow"); const p = PERIODS.find(([, a, b]) => a === state.from && b === state.to); return p ? t(p[0]) : fmt(state.from) + "–" + (state.to === 1440 ? t("midnight") : fmt(state.to)); },
 };
@@ -1103,7 +1106,7 @@ function updateSummaries() {
   document.querySelectorAll("[data-active]").forEach(el => { const n = activeCount(); el.textContent = n; el.hidden = !n; });
   document.querySelectorAll("[data-badge]").forEach(el => { const n = moreCount(); el.textContent = n; el.hidden = !n; });
   document.querySelectorAll(".pill-btn[data-key]").forEach(b => {
-    const k = b.dataset.key, on = k === "type" ? state.types.size !== TYPES.length : k === "loc" ? !(state.mode === "city" && state.city === "All") : k === "day" ? !isBrowse() && state.date !== isoToday() : k === "time" ? !(state.from === 360 && state.to === 1440) || state.todayMode : moreCount() > 0;
+    const k = b.dataset.key, on = k === "type" ? state.types.size !== TYPES.length : k === "loc" ? locFiltered() : k === "day" ? !isBrowse() && state.date !== isoToday() : k === "time" ? !(state.from === 360 && state.to === 1440) || state.todayMode : moreCount() > 0;
     b.classList.toggle("on", on); });
 }
 function applyLayout(name) {
@@ -1206,23 +1209,32 @@ function askGeo(ok, fail) {
     { enableHighAccuracy: false, maximumAge: 600000, timeout: n ? 25000 : 12000 });
   try { go(0); } catch (e) { fail(e); }
 }
+function geoRemember(ok) { try { ok ? localStorage.setItem("geoOK", "1") : localStorage.removeItem("geoOK"); } catch {} }
+/* If location worked on an earlier visit, use it as soon as the "Near me" box is shown (after a tap, so Safari may ask again). */
+function autoGeoOnOpen(run) { let tried = false;
+  document.addEventListener("click", () => requestAnimationFrame(() => {
+    if (tried || state.geo || state.originPicked || state.mode !== "near") return;
+    const nb = $("nearBox"); if (!nb || nb.hidden || !nb.offsetParent) return;
+    let ok = null; try { ok = localStorage.getItem("geoOK"); } catch {} if (!ok) return;
+    tried = true; run(); }), true); }
 function geoBusy(on) { const b = $("geoBtn"); b.disabled = on; b.querySelector("span").textContent = t(on ? "locating" : "useLoc"); }
 function locate(quiet) {
   if (!quiet) { geoBusy(true); $("originHint").textContent = ""; }
   askGeo(p => {
-    state.geo = [p.coords.latitude, p.coords.longitude]; state.mode = "near"; locChanged(true); $("origin").value = ""; geoBusy(false); $("originHint").textContent = "";
+    state.geo = [p.coords.latitude, p.coords.longitude]; state.mode = "near"; locChanged(true); $("origin").value = ""; geoBusy(false); $("originHint").textContent = ""; geoRemember(true);
 
     syncControls(); updateHint(); render(); track("use_location");
-  }, e => { geoBusy(false); if (!quiet) $("originHint").textContent = geoMsg(e); });
+  }, e => { geoBusy(false); if (e && e.code === 1) geoRemember(false); if (!quiet) $("originHint").textContent = geoMsg(e); });
 }
 $("geoBtn").onclick = () => locate(false);
+autoGeoOnOpen(() => locate(false));
 try { navigator.permissions && navigator.permissions.query({ name: "geolocation" }).then(p => { if (p.state === "granted" && !state.locSet) locate(true); }).catch(() => {}); } catch {}
 $("radius").oninput = e => { state.radius = +e.target.value; if (!state.locSet) locChanged(true); $("radiusOut").textContent = state.radius + " km"; render(); };
 $("date").onchange = e => { if (e.target.value) { state.date = e.target.value; state.daySet = true; state.week = false; state.todayMode = false; buildPeriodChips(); render(); } };
 $("from").onchange = e => { state.from = +e.target.value; if (state.to <= state.from) state.to = Math.min(1440, state.from + 60); state.todayMode = false; syncControls(); render(); };
 $("to").onchange = e => { state.to = +e.target.value; if (state.to <= state.from) state.from = Math.max(360, state.to - 60); state.todayMode = false; syncControls(); render(); };
 $("todayBtn").onclick = () => { const n = new Date(); state.date = isoToday(); state.todayMode = true; state.week = false; state.from = 360; state.to = 1440; syncControls(); render(); };
-$("resetBtn").onclick = () => { state.favOnly = false; state.types = new Set(TYPES.map(t => t[0])); state.mode = "city"; state.city = "All"; state.radius = 25; state.origin = "Vancouver"; state.geo = null; state.gender = "any"; state.locSet = false; state.daySet = false; state.week = false; state.typeTouched = false; state.date = isoToday(); state.from = 360; state.to = 1440; state.todayMode = false; buildTypeChips(); syncControls(); render(); };
+$("resetBtn").onclick = () => { state.favOnly = false; state.types = new Set(TYPES.map(t => t[0])); state.mode = "near"; state.city = "All"; state.radius = 25; state.origin = ""; state.originPicked = false; state.geo = null; state.gender = "any"; state.locSet = false; state.daySet = false; state.week = false; state.typeTouched = false; state.date = isoToday(); state.from = 360; state.to = 1440; state.todayMode = false; buildTypeChips(); syncControls(); render(); };
 
 /* ---------- footer + feedback ---------- */
 const FEEDBACK_EMAIL = "feedback@icetimes.ca";

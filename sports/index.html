@@ -643,7 +643,7 @@ function cancelledOn(notes, date) {
 
 /* ---------- state ---------- */
 const PERIODS = [["pAny", 300, 1440], ["pMorning", 300, 720], ["pAfternoon", 720, 1020], ["pEvening", 1020, 1440]];
-const DEF = { sport: null, mode: "city", city: "All", origin: "Burnaby", radius: 15, geo: null, when: "today", date: isoToday(), period: 0, who: "any", women: false };
+const DEF = { sport: null, mode: "near", city: "All", origin: "", radius: 15, geo: null, when: "today", date: isoToday(), period: 0, who: "any", women: false };
 const state = { ...DEF };
 let openId = null, recent = [];
 /* Saved sessions and places: kept only in this browser (localStorage), never sent anywhere. */
@@ -652,9 +652,9 @@ const FAV = (() => { try { const f = JSON.parse(localStorage.getItem("dropFavs")
 const saveFav = () => { try { localStorage.setItem("dropFavs", JSON.stringify({ s: [...FAV.s], v: [...FAV.v] })); } catch {} };
 const isFav = r => FAV.s.has(favKey(r)) || FAV.v.has(r.venue);
 const favCount = () => ROWS.filter(r => FAV.s.has(favKey(r))).length + [...FAV.v].filter(k => ROWS.some(r => r.venue === k)).length;
-function save() { try { localStorage.setItem("dropFinder", JSON.stringify({ mode: state.mode, city: state.city, origin: state.origin, radius: state.radius, who: state.who })); localStorage.setItem("dropRecent", JSON.stringify(recent)); } catch {} }
+function save() { try { localStorage.setItem("dropFinder", JSON.stringify({ v: 2, mode: state.mode, city: state.city, origin: state.originPicked ? state.origin : "", op: !!state.originPicked, radius: state.radius, who: state.who })); localStorage.setItem("dropRecent", JSON.stringify(recent)); } catch {} }
 function restore() { try { const s = JSON.parse(localStorage.getItem("dropFinder") || "null");
-  if (s) { if (s.mode === "near" || s.mode === "city") state.mode = s.mode; if (s.city) state.city = s.city; if (matchPlace(s.origin)) state.origin = s.origin; if (s.radius >= 2 && s.radius <= 60) state.radius = s.radius; if (t("who")[s.who]) state.who = s.who; }
+  if (s) { if (s.v === 2 && (s.mode === "near" || s.mode === "city")) state.mode = s.mode; if (s.city) state.city = s.city; if (s.op && matchPlace(s.origin)) { state.origin = s.origin; state.originPicked = true; } if (s.radius >= 2 && s.radius <= 60) state.radius = s.radius; if (t("who")[s.who]) state.who = s.who; }
   recent = (JSON.parse(localStorage.getItem("dropRecent") || "[]") || []).filter(k => SPK.includes(k)).slice(0, 4); } catch {} }
 const sportsFor = () => state.sport === "all" ? null : state.sport;
 
@@ -671,7 +671,9 @@ function gmapEmbed(r) {
   const cap = o ? t("gmapRoute", state.geo ? t("myLoc") : (matchPlace(state.origin) || [state.origin])[0]) : "";
   return `<figure class="gmap"><iframe src="${src}" title="${esc(t("gmapTitle", r.venue))}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>${cap ? `<figcaption>${esc(cap)}</figcaption>` : ""}</figure>`;
 }
-function originPt() { if (state.mode !== "near") return null; if (state.geo) return state.geo; const p = matchPlace(state.origin); return p ? [p[1], p[2]] : null; }
+function originPt() { if (state.mode !== "near") return null; if (state.geo) return state.geo; const p = state.origin ? matchPlace(state.origin) : null; return p ? [p[1], p[2]] : null; }
+/* "Near me" is the default tab, but it only narrows results once there's a location or a typed place. */
+const locFiltered = () => state.mode === "city" ? state.city !== "All" : !!originPt();
 function matchesBase(r, { sport = sportsFor(), ignoreWhere = false } = {}) {
   if (sport && r.sport !== sport) return false;
   if (state.women && !(r.gender === "women" || r.gender === "women+gd")) return false;
@@ -679,7 +681,7 @@ function matchesBase(r, { sport = sportsFor(), ignoreWhere = false } = {}) {
     const ok = { adult: ["adult", "all"], youth: ["youth", "all"], senior: ["senior", "adult", "all"], family: ["family", "all"] }[state.who]; if (!ok.includes(a)) return false; }
   if (!ignoreWhere) {
     if (state.mode === "city") { if (state.city !== "All" && r.city !== state.city) return false; }
-    else { const o = originPt(), c = COORDS[r.venue]; if (!o || !c || km(o, c) > state.radius) return false; }
+    else { const o = originPt(), c = COORDS[r.venue]; if (o && (!c || km(o, c) > state.radius)) return false; }
   }
   return true;
 }
@@ -739,7 +741,7 @@ function buildChips() {
   updateHint();
 }
 function updateHint() { const v = $("origin").value, p = matchPlace(v); $("originHint").textContent = state.geo && !v ? t("hintFrom", t("myLoc")) : !v ? t("hintPick") : p ? t("hintFrom", p[0]) : t("hintMiss"); }
-const whereTxt = () => state.mode === "city" ? (state.city === "All" ? t("allCitiesL") : state.city) : t("withinL", state.radius, state.geo ? t("myLoc") : state.origin);
+const whereTxt = () => !locFiltered() ? t("allCitiesL") : state.mode === "city" ? state.city : t("withinL", state.radius, state.geo ? t("myLoc") : state.origin);
 const whenTxt = () => state.when === "week" ? t("next7") : state.when === "tomorrow" ? t("tomorrow") : state.when === "date" ? dateFmt(parseISO(state.date), { weekday: "short", month: "short", day: "numeric" }) : t("today");
 
 function card(r) {
@@ -801,7 +803,7 @@ function render() {
   const vn = new Set(open.map(r => r.venue)).size, per = state.period ? " · " + t(PERIODS[state.period][0]).toLowerCase() : "";
   $("sumSub").textContent = `${whenTxt()}${state.when === "today" ? " (" + t("restToday") + ")" : ""} · ${t("venues", vn)}${state.favOnly ? "" : " · " + whereTxt()}${per}`;
   // mobile summary
-  const n = (state.mode === "near" || state.city !== "All") + (state.when !== "today") + (state.period !== 0) + (state.who !== "any") + state.women;
+  const n = locFiltered() + (state.when !== "today") + (state.period !== 0) + (state.who !== "any") + state.women;
   $("fbadge").textContent = n; $("fbadge").hidden = !n;
   $("fsum").textContent = [whereTxt(), whenTxt(), state.who !== "any" ? t("who")[state.who] : ""].filter(Boolean).join(" · ");
   $("fdone").textContent = t("show", t("sess", open.length));
@@ -866,12 +868,21 @@ function askGeo(ok, fail) {
     { enableHighAccuracy: false, maximumAge: 600000, timeout: n ? 25000 : 12000 });
   try { go(0); } catch (e) { fail(e); }
 }
+function geoRemember(ok) { try { ok ? localStorage.setItem("geoOK", "1") : localStorage.removeItem("geoOK"); } catch {} }
+/* If location worked on an earlier visit, use it as soon as the "Near me" box is shown (after a tap, so Safari may ask again). */
+function autoGeoOnOpen(run) { let tried = false;
+  document.addEventListener("click", () => requestAnimationFrame(() => {
+    if (tried || state.geo || state.originPicked || state.mode !== "near") return;
+    const nb = $("nearBox"); if (!nb || nb.hidden || !nb.offsetParent) return;
+    let ok = null; try { ok = localStorage.getItem("geoOK"); } catch {} if (!ok) return;
+    tried = true; run(); }), true); }
 function geoBusy(on) { const b = $("geoBtn"); b.disabled = on; b.querySelector("span").textContent = t(on ? "locating" : "useLoc"); }
 $("geoBtn").onclick = () => {
   geoBusy(true); $("originHint").textContent = "";
-  askGeo(p => { state.geo = [p.coords.latitude, p.coords.longitude]; state.mode = "near"; $("origin").value = ""; geoBusy(false); update(); },
-    e => { geoBusy(false); $("originHint").textContent = geoMsg(e); });
+  askGeo(p => { state.geo = [p.coords.latitude, p.coords.longitude]; state.mode = "near"; $("origin").value = ""; geoBusy(false); geoRemember(true); update(); },
+    e => { geoBusy(false); if (e && e.code === 1) geoRemember(false); $("originHint").textContent = geoMsg(e); });
 };
+autoGeoOnOpen(() => $("geoBtn").click());
 $("date").onchange = e => { if (e.target.value) { state.date = e.target.value; state.when = e.target.value === isoToday() ? "today" : "date"; update(); } };
 $("women").onchange = e => { state.women = e.target.checked; update(); };
 $("resetBtn").onclick = () => { state.favOnly = false; Object.assign(state, { ...DEF, sport: state.sport, date: isoToday() }); buildCities(); update(); };
