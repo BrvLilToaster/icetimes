@@ -246,7 +246,12 @@ main.full .panel { display: none; }
   .vbar .pill-btn[aria-expanded="true"] .chev { transform: rotate(-135deg); margin: 4px 4px 0 8px; }
 }
 .card { cursor: pointer; }
-.card:hover { border-color: color-mix(in srgb, var(--c) 45%, var(--line)); }
+.card { transition: transform .15s ease-out, box-shadow .15s ease-out, background-color .15s ease-out, border-color .15s ease-out; }
+@media (hover: hover) {
+  .card:hover { background: color-mix(in srgb, var(--surface) 93%, #fff); border-color: var(--c); }
+  .card:not([aria-expanded="true"]):hover { transform: translateY(-2px); box-shadow: 0 10px 22px -12px rgba(0,0,0,.45); }
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none !important; } }
 .card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .card[aria-expanded="true"] { border-color: var(--c); box-shadow: 0 6px 22px -14px rgba(0,0,0,.45); }
 .chev { display: inline-block; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: 2px 4px 0 0; transition: transform .15s; }
