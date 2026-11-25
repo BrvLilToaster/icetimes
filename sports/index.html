@@ -933,7 +933,10 @@ $("langBtn").onclick = () => { LANG = LANG === "fr" ? "en" : "fr"; try { localSt
 restore();
 $("placeList").innerHTML = PLACES.map(p => `<option value="${esc(p[0])}"></option>`).join("");
 applyLang();
-{ const h = location.hash.slice(1); if (openShared(h)) {} else if (SPK.includes(h) || h === "all") pickSport(h); else showHome(); }
+{ const q = new URLSearchParams(location.search), qc = q.get("city");
+  if (qc && ROWS.some(r => r.city === qc)) { state.mode = "city"; state.city = qc; }
+  if (q.get("week") === "1") state.when = "week";
+  const h = location.hash.slice(1); if (openShared(h)) {} else if (SPK.includes(h) || h === "all") pickSport(h); else showHome(); }
 setInterval(() => { if (state.sport && state.when === "today") render(); else if (!state.sport) buildHome(); }, 5 * 60 * 1000);
 </script>
 </body>

@@ -69,7 +69,7 @@ h2{font:700 24px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:30px 0 
 .cta{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font:700 18px/1 "Barlow Condensed","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.6px;padding:13px 18px;border-radius:8px;margin:8px 0}
 .rinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;padding:0;list-style:none}
 .rinks li{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px}
-.rinks b{display:block;font-size:15px}.muted{color:var(--muted)}
+.rinks b{display:block;font-size:15px}.rinks b a{color:inherit}.addr{font-size:15px;margin:6px 0}.cta.alt{margin-left:6px}.muted{color:var(--muted)}
 table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px;margin-bottom:6px}
 th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#f6f9fb}
 td.t{white-space:nowrap;font-weight:600}.ty{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
@@ -129,21 +129,21 @@ def page(path, title, desc, h1, crumbs, body, jsonld):
 """
 
 
-def schedule_tables(rows, show_city):
+def schedule_tables(rows, show_city, show_rink=True):
     out = []
     for d in DAYS:
         day = sorted([r for r in rows if r["day"] == d], key=lambda r: (r["start"], r["rink"]))
         if not day:
             continue
         out.append(f'<h3>{DAY_NAME[d]} <span class="muted">· {len(day)} session{"s" if len(day) != 1 else ""}</span></h3>')
-        out.append("<table><thead><tr><th>Time</th><th>Session</th><th>Rink</th>"
+        out.append("<table><thead><tr><th>Time</th><th>Session</th>" + ("<th>Rink</th>" if show_rink else "")
                    + ("<th>City</th>" if show_city else "") + '<th class="hide">Cost</th></tr></thead><tbody>')
         for r in day:
             tag = '<span class="tag">Private rink · book online</span>' if r.get("priv") else ""
             ages = f' <span class="muted">· {e(r["ages"])}</span>' if r.get("ages") else ""
             out.append(f'<tr><td class="t">{fmt(r["start"])}–{fmt(r["end"])}</td>'
                        f'<td><span class="ty" style="color:{TYPE_COLOR.get(r["type"], "#333")}">{e(r["type"])}</span><br>{e(r["session"])}{ages}</td>'
-                       f'<td>{e(r["rink"])}{tag}</td>' + (f'<td>{e(r["city"])}</td>' if show_city else "")
+                       + (f'<td>{e(r["rink"])}{tag}</td>' if show_rink else "") + (f'<td>{e(r["city"])}</td>' if show_city else "")
                        + f'<td class="hide">{e(r["cost"])}</td></tr>')
         out.append("</tbody></table>")
     return "\n".join(out)
@@ -158,7 +158,7 @@ def rink_list(rows):
         types = ", ".join(t for t, _ in Counter(r["type"] for r in rs).most_common())
         maps = "https://www.google.com/maps/search/?api=1&query=" + re.sub(r"\s+", "+", f"{rk}, {addr}, BC")
         priv = " · private rink, book online" if any(r.get("priv") for r in rs) else ""
-        items.append(f'<li><b>{e(rk)}</b><a href="{e(maps)}" rel="noopener">{e(addr)}</a><br><span class="muted">{len(rs)} sessions this week · {e(types)}{priv}</span></li>')
+        items.append(f'<li><b><a href="/places/{slug(rk)}/">{e(rk)}</a></b><a href="{e(maps)}" rel="noopener">{e(addr)}</a><br><span class="muted">{len(rs)} sessions this week · {e(types)}{priv}</span></li>')
     return '<ul class="rinks">' + "".join(items) + "</ul>"
 
 
@@ -278,6 +278,207 @@ def how_to_book_body():
             f'<p class="muted">Booking rules checked November 2026. Cities change them now and then, so trust the city\'s page if it says something different.</p>')
 
 
+# ---------------------------------------------------------------------------------------------
+# Place pages (/places/<venue>/) and sport-by-city pages (/sports/<sport>/<city>/).
+# Ice sessions come from index.html's SNAPSHOT (refreshed weekly); gym & court sports come from
+# the DATA block inside sports/index.html.
+SPORT_INFO = {  # key -> (url slug, name, plural noun for text)
+    "basketball": ("basketball", "Basketball", "basketball"), "volleyball": ("volleyball", "Volleyball", "volleyball"),
+    "soccer": ("indoor-soccer", "Indoor Soccer", "indoor soccer"), "floorhockey": ("floor-hockey", "Ball & Floor Hockey", "ball & floor hockey"),
+    "netball": ("netball", "Netball", "netball"), "badminton": ("badminton", "Badminton", "badminton"),
+    "pickleball": ("pickleball", "Pickleball", "pickleball"), "tabletennis": ("table-tennis", "Table Tennis", "table tennis"),
+    "tennis": ("tennis", "Tennis", "tennis"), "opengym": ("open-gym", "Open Gym", "open gym"),
+}
+SPORT_COLOR = {"basketball": "#c2410c", "volleyball": "#7c3aed", "soccer": "#15803d", "floorhockey": "#be123c", "netball": "#0e7490",
+               "badminton": "#0f766e", "pickleball": "#4d7c0f", "tabletennis": "#c026d3", "tennis": "#a16207", "opengym": "#475569"}
+SPK = ["skate", "sp", "hockey", "basketball", "volleyball", "soccer", "floorhockey", "netball", "badminton", "pickleball", "tabletennis", "tennis", "opengym"]
+SDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+MIN_SPORT_CITY = 3
+SHORT_ICE = {"Public Skate": "Skating", "Adult Public Skate": "Skating", "Family Skate": "Skating", "Youth Skate": "Skating",
+             "Stick & Puck": "Stick & Puck", "Drop-in Hockey": "Hockey", "Figure Skating": "Figure Skating"}   # a sport-by-city page needs at least this many weekly sessions
+
+
+def load_sports():
+    fp = os.path.join(ROOT, "sports", "index.html")
+    if not os.path.exists(fp):
+        return [], ""
+    s = open(fp, encoding="utf-8").read()
+    m = re.search(r"const DATA = (\{.*?\});\n", s, re.S)
+    if not m:
+        return [], ""
+    d = json.loads(m.group(1)); S = d["s"]
+    rows = [dict(day=SDAYS[a[0]], start=a[1], end=a[2], sport=SPK[a[3]], session=S[a[4]], venue=S[a[5]], city=S[a[6]], room=S[a[7]],
+                 cost=S[a[8]], booking=S[a[9]], notes=S[a[10]], address=S[a[11]], ages=S[a[12]], priv=bool(a[13])) for a in d["r"]]
+    u = re.search(r'const UPDATED = "([^"]+)"', s)
+    return [r for r in rows if r["sport"] in SPORT_INFO], (u.group(1) if u else "")
+
+
+def gym_tables(rows, show_venue, show_city):
+    one = len({r["sport"] for r in rows}) == 1
+    out = []
+    for d in DAYS:
+        day = sorted([r for r in rows if r["day"] == d], key=lambda r: (r["start"], r["venue"]))
+        if not day:
+            continue
+        out.append(f'<h3>{DAY_NAME[d]} <span class="muted">· {len(day)} session{"s" if len(day) != 1 else ""}</span></h3>')
+        out.append("<table><thead><tr><th>Time</th><th>Session</th>" + ("<th>Place</th>" if show_venue else "")
+                   + ("<th>City</th>" if show_city else "") + '<th class="hide">Cost</th></tr></thead><tbody>')
+        for r in day:
+            ages = f' <span class="muted">· {e(r["ages"])}</span>' if r.get("ages") else ""
+            room = f' <span class="muted">· {e(r["room"])}</span>' if r.get("room") and not show_venue else ""
+            label = "" if one else f'<span class="ty" style="color:{SPORT_COLOR[r["sport"]]}">{e(SPORT_INFO[r["sport"]][1])}</span><br>'
+            venue = f'<td><a href="/places/{slug(r["venue"])}/">{e(r["venue"])}</a></td>' if show_venue else ""
+            out.append(f'<tr><td class="t">{fmt(r["start"])}–{fmt(r["end"])}</td>'
+                       f'<td>{label}{e(r["session"])}{ages}{room}</td>'
+                       + venue + (f'<td>{e(r["city"])}</td>' if show_city else "") + f'<td class="hide">{e(r["cost"])}</td></tr>')
+        out.append("</tbody></table>")
+    return "\n".join(out)
+
+
+def ld_crumbs(*items):
+    return {"@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": i + 1, "name": n, "item": SITE + u} for i, (n, u) in enumerate(items)]}
+
+
+def htb_anchor(city, priv=False):
+    s = slug(city)
+    return "canlan" if priv or s not in HTB_IDS else s
+
+
+def write(path, html_):
+    os.makedirs(os.path.join(ROOT, path), exist_ok=True)
+    open(os.path.join(ROOT, path, "index.html"), "w", encoding="utf-8").write(html_)
+
+
+def prune(base, keep):
+    """Delete generated sub-pages under base/ that are no longer in keep (relative paths like 'places/x')."""
+    top = os.path.join(ROOT, base)
+    if not os.path.isdir(top):
+        return
+    for dirpath, dirnames, filenames in os.walk(top, topdown=False):
+        rel = os.path.relpath(dirpath, ROOT).replace(os.sep, "/")
+        if rel == base or rel in keep:
+            continue
+        fp = os.path.join(dirpath, "index.html")
+        if os.path.exists(fp) and "Open Ice Finder" in open(fp, encoding="utf-8").read(3000):
+            os.remove(fp)
+        if not os.listdir(dirpath):
+            os.rmdir(dirpath)
+
+
+def build_places_and_sports(ice, when):
+    gym, gym_upd = load_sports()
+    gym_when = f"Collected {gym_upd}" if gym_upd else when
+    paths = []
+
+    # ---------- places ----------
+    venues = {}
+    for r in ice:
+        v = venues.setdefault(r["rink"], {"city": r["city"], "address": r["address"], "ice": [], "gym": [], "priv": False})
+        v["ice"].append(r); v["priv"] |= bool(r.get("priv"))
+    for r in gym:
+        v = venues.setdefault(r["venue"], {"city": r["city"], "address": r["address"], "ice": [], "gym": [], "priv": False})
+        v["gym"].append(r)
+    by_city = defaultdict(list)
+    for name, v in sorted(venues.items()):
+        by_city[v["city"]].append(name)
+        n_ice, n_gym = len(v["ice"]), len(v["gym"])
+        kinds = [TYPES[t][2] for t, _ in Counter(r["type"] for r in v["ice"]).most_common(3)]
+        kinds += [SPORT_INFO[k][2] for k, _ in Counter(r["sport"] for r in v["gym"]).most_common(4)]
+        kind_txt = ", ".join(kinds[:-1]) + (" and " + kinds[-1] if len(kinds) > 1 else (kinds[0] if kinds else ""))
+        ps = slug(name)
+        short = [SHORT_ICE[t] for t, _ in Counter(r["type"] for r in v["ice"]).most_common()]
+        short = list(dict.fromkeys(short + [SPORT_INFO[k][1] for k, _ in Counter(r["sport"] for r in v["gym"]).most_common()]))
+        title = f"{name} Drop-in Times: {', '.join(short[:3])} | Open Ice Finder"
+        if len(title) > 95:
+            title = f"{name} Drop-in Times: {', '.join(short[:2])} | Open Ice Finder"
+        desc = (f"This week's drop-in times at {name}, {v['city']}: {n_ice + n_gym} sessions including {kind_txt}. "
+                f"Times, prices, how to book and directions, updated weekly.")
+        maps = "https://www.google.com/maps/search/?api=1&query=" + re.sub(r"\s+", "+", f"{name}, {v['address']}, BC")
+        book = f'<a href="/how-to-book/#{htb_anchor(v["city"], v["priv"])}">How booking works here →</a>'
+        btns = []
+        if n_ice:
+            btns.append(f'<a class="cta" href="/?city={e(v["city"])}&amp;week=1">Ice times in {e(v["city"])} →</a>')
+        if n_gym:
+            top = Counter(r["sport"] for r in v["gym"]).most_common(1)[0][0]
+            btns.append(f'<a class="cta{" alt" if n_ice else ""}" href="/sports/?city={e(v["city"])}&amp;week=1#{top}">Drop-in sports in {e(v["city"])} →</a>')
+        body = (f'<p class="lead"><b>{n_ice + n_gym} drop-in sessions</b> this week at {e(name)}: {e(kind_txt)}.</p>'
+                f'<p class="addr">📍 <a href="{e(maps)}" rel="noopener">{e(v["address"])}</a> · {e(v["city"])}'
+                + (' · <span class="tag">Private rink · book online</span>' if v["priv"] else "") + f'</p><p class="muted">{book}</p>'
+                + "".join(btns))
+        if n_ice:
+            body += f'<h2>Ice times this week</h2><p class="muted">{e(when)}.</p>{schedule_tables(v["ice"], False, False)}'
+        if n_gym:
+            body += f'<h2>Gym &amp; court sports this week</h2><p class="muted">{e(gym_when)}.</p>{gym_tables(v["gym"], False, False)}'
+        others = sorted(n for n, w in venues.items() if w["city"] == v["city"] and n != name)[:12]
+        if others:
+            body += f'<h2>Other places in {e(v["city"])}</h2><ul class="links">' + "".join(f'<li><a href="/places/{slug(o)}/">{e(o)}</a></li>' for o in others) + "</ul>"
+        place = {"@type": "IceRink" if n_ice and not n_gym else "SportsActivityLocation", "name": name, "url": f"{SITE}/places/{ps}/",
+                 "address": {"@type": "PostalAddress", "streetAddress": v["address"].rsplit(",", 1)[0], "addressLocality": v["city"],
+                             "addressRegion": "BC", "addressCountry": "CA"}}
+        ld = {"@context": "https://schema.org", "@graph": [ld_crumbs(("Open Ice Finder", "/"), (v["city"], f"/{slug(v['city'])}/") if os.path.isdir(os.path.join(ROOT, slug(v["city"]))) else ("Places", "/places/"), (name, f"/places/{ps}/")), place]}
+        cr = f'<a href="/">Open Ice Finder</a> › <a href="/places/">Places</a> › {e(name)}'
+        write(f"places/{ps}", page(f"places/{ps}/", title, desc, f"{name}: drop-in times", cr, body, ld))
+        paths.append(f"places/{ps}/")
+
+    # places index
+    lis = []
+    for city in sorted(by_city):
+        lis.append(f'<h2>{e(city)}</h2><ul class="links">' + "".join(f'<li><a href="/places/{slug(n)}/">{e(n)}</a></li>' for n in sorted(by_city[city])) + "</ul>")
+    write("places", page("places/", "Rinks & Community Centres with Drop-in Times – Metro Vancouver | Open Ice Finder",
+                         f"Drop-in skating, hockey and gym sports schedules for {len(venues)} rinks and community centres across the Lower Mainland, updated weekly.",
+                         "Rinks & community centres", crumbs("Places"),
+                         f'<p class="lead">This week\'s drop-in schedule for each of the {len(venues)} rinks and community centres on Open Ice Finder.</p>' + "".join(lis),
+                         {"@context": "https://schema.org", **ld_crumbs(("Open Ice Finder", "/"), ("Places", "/places/"))}))
+    paths.append("places/")
+
+    # ---------- sport hubs + sport-by-city ----------
+    hub_links = []
+    for k, (sl, name, noun) in SPORT_INFO.items():
+        rs = [r for r in gym if r["sport"] == k]
+        if not rs:
+            continue
+        bycity = Counter(r["city"] for r in rs)
+        nv = len({r["venue"] for r in rs})
+        city_pages = []
+        for city, n in sorted(bycity.items()):
+            if n < MIN_SPORT_CITY:
+                continue
+            crs = [r for r in rs if r["city"] == city]
+            cv = len({r["venue"] for r in crs})
+            path = f"sports/{sl}/{slug(city)}/"
+            title = f"Drop-in {name} in {city} – This Week's Times | Open Ice Finder"
+            desc = (f"This week's drop-in {noun} in {city}, BC: {n} sessions at {cv} community centre{'s' if cv != 1 else ''}. "
+                    f"Times, prices and how to book, updated weekly.")
+            body = (f'<p class="lead"><b>{n} drop-in {e(noun)} sessions</b> this week at {cv} place{"s" if cv != 1 else ""} in {e(city)}. {e(gym_when)}, from official schedules.</p>'
+                    f'<a class="cta" href="/sports/?city={e(city)}&amp;week=1#{k}">Open {e(noun)} in the finder →</a>'
+                    f'<p class="muted"><a href="/how-to-book/#{htb_anchor(city)}">How booking works in {e(city)} →</a></p>'
+                    f'<h2>This week\'s {e(noun)} times in {e(city)}</h2>{gym_tables(crs, True, False)}'
+                    f'<p class="muted"><a href="/sports/{sl}/">Drop-in {e(noun)} in other cities →</a></p>')
+            cr = f'<a href="/">Open Ice Finder</a> › <a href="/sports/{sl}/">{e(name)}</a> › {e(city)}'
+            ld = {"@context": "https://schema.org", **ld_crumbs(("Open Ice Finder", "/"), (name, f"/sports/{sl}/"), (city, "/" + path))}
+            write(path.rstrip("/"), page(path, title, desc, f"Drop-in {noun} in {city}", cr, body, ld))
+            paths.append(path); city_pages.append((city, n))
+        path = f"sports/{sl}/"
+        nc = len(bycity)
+        title = f"Drop-in {name} in Vancouver & the Lower Mainland – This Week | Open Ice Finder"
+        desc = (f"Every drop-in {noun} time this week across Metro Vancouver: {len(rs)} sessions at {nv} community centres in {nc} cities. "
+                f"Times, prices and how to book, updated weekly.")
+        clist = "".join(f'<li><a href="/sports/{sl}/{slug(c)}/">{e(c)}</a> <span class="muted">({n})</span></li>' for c, n in city_pages)
+        body = (f'<p class="lead"><b>{len(rs)} drop-in {e(noun)} sessions</b> this week at {nv} places in {nc} cities. {e(gym_when)}, from official schedules.</p>'
+                f'<a class="cta" href="/sports/?week=1#{k}">Find {e(noun)} near you →</a>'
+                + (f'<h2>By city</h2><ul class="links">{clist}</ul>' if clist else "")
+                + f'<h2>This week\'s {e(noun)} times</h2>{gym_tables(rs, True, True)}')
+        cr = f'<a href="/">Open Ice Finder</a> › <a href="/sports/">Drop-in sports</a> › {e(name)}'
+        ld = {"@context": "https://schema.org", **ld_crumbs(("Open Ice Finder", "/"), ("Drop-in sports", "/sports/"), (name, "/" + path))}
+        write(path.rstrip("/"), page(path, title, desc, f"Drop-in {noun} in Vancouver & the Lower Mainland", cr, body, ld))
+        paths.append(path); hub_links.append((sl, name, len(rs)))
+
+    prune("places", {p.rstrip("/") for p in paths})
+    prune("sports", {p.rstrip("/") for p in paths})
+    return paths, hub_links, by_city
+
+
 def main():
     idx, rows, updated = load()
     cities = sorted({r["city"] for r in rows})
@@ -347,8 +548,12 @@ def main():
         page("how-to-book/", hb_title, hb_desc, "How to book drop-in ice & sports", crumbs("How to book"), how_to_book_body(), hb_ld))
     paths.append("how-to-book/")
 
+    # places + sport pages
+    more_paths, hub_links, places_by_city = build_places_and_sports(rows, when)
+    paths += more_paths
+
     # remove pages for cities/types that dropped out of the data
-    keep = {p.strip("/") for p in paths}
+    keep = {p.strip("/") for p in paths} | {"sports", "places"}
     for d in os.listdir(ROOT):
         fp = os.path.join(ROOT, d, "index.html")
         if os.path.isdir(os.path.join(ROOT, d)) and os.path.exists(fp) and d not in keep and d not in {"tools", ".git"}:
@@ -356,8 +561,10 @@ def main():
                 shutil.rmtree(os.path.join(ROOT, d))
 
     # browse links on the main page
+    slinks = " ".join(f'<li><a href="/sports/{sl}/">{e(n)}</a></li>' for sl, n, _ in hub_links)
     block = (f'<!--SEO-LINKS--><section class="browse" aria-label="Browse ice times by city and type">'
-             f'<h2>Browse this week\'s ice times</h2><p>By city:</p><ul>{clinks}</ul><p>By type of ice time:</p><ul>{tlinks}</ul></section><!--/SEO-LINKS-->')
+             f'<h2>Browse this week\'s ice times</h2><p>By city:</p><ul>{clinks}</ul><p>By type of ice time:</p><ul>{tlinks}</ul>'
+             f'<p>Drop-in sports:</p><ul>{slinks}</ul><p><a href="/places/">Every rink &amp; community centre →</a></p></section><!--/SEO-LINKS-->')
     idx2 = re.sub(r"<!--SEO-LINKS-->.*?<!--/SEO-LINKS-->", lambda m: block, idx, flags=re.S)
     if idx2 != idx:
         open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8").write(idx2)
