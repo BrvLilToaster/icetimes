@@ -835,7 +835,10 @@ const BOOK_LINKS = {
   "Vancouver": "https://anc.ca.apm.activecommunities.com/vancouver/calendars",
   "Burnaby": "https://www.burnaby.ca/webreg",
   "Richmond": "https://www.richmond.ca/parks-recreation/about/arenas/fees.htm",
-  "Surrey": "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4?widgetId=b4059e75-9755-401f-a7b5-d7c75361420d",
+  // Surrey: hockey and stick & puck have their own list; figure skating is on the drop-in skating list.
+  "Surrey": r => r.type === "Drop-in Hockey" || r.type === "Stick & Puck"
+    ? "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?calendarId=7333623a-774c-4e63-aaac-b85a2cfbd17d&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False"
+    : "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?calendarId=5b599b6d-d54f-43c1-b86a-e962d9bf107b&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False",
   "Coquitlam": "https://www.coquitlam.ca/979",
   "Port Coquitlam": "https://www.portcoquitlam.ca/register",
   "Port Moody": "https://cityofportmoody.perfectmind.com/Contacts/BookMe4BookingPages/Classes?calendarId=da287199-756a-422e-8fbc-b2e5063b77f8&widgetId=15f6af07-39c5-473e-b053-96653f77a406&embed=False",
@@ -862,7 +865,7 @@ function bookRule(r) {
 }
 function bookShort(r) { const [k, a] = bookRule(r); return k ? t(k, a) : a; }
 const NO_BOOK = ["bkDrop", "bkDoor", "bkWalk", null];
-const bookLink = r => NO_BOOK.includes(bookRule(r)[0]) ? "" : r.priv ? r.link : BOOK_LINKS[r.city] || "";
+const bookLink = r => NO_BOOK.includes(bookRule(r)[0]) ? "" : r.priv ? r.link : (u => typeof u === "function" ? u(r) : u || "")(BOOK_LINKS[r.city]);
 const cardNote = r => (r.notes || "").replace(/^(reserve|pre-register)\s*;?\s*/i, "").replace(/^cancelled .*/i, "");
 
 /* ---------- results ---------- */
