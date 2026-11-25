@@ -802,10 +802,10 @@ $("list").addEventListener("click", e => { if (e.target.closest("a, [data-stop],
 $("list").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("card")) { e.preventDefault(); toggleCard(e.target.dataset.k); } });
 function toggleCard(k) { openId = openId === k ? null : k; render(); const el = document.querySelector(`.card[data-k="${k}"]`); if (el) { el.focus({ preventScroll: true }); if (openId) el.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }
 $("modeCity").onclick = () => { state.mode = "city"; update(); };
-$("modeNear").onclick = () => { state.mode = "near"; update(); };
+$("modeNear").onclick = () => { state.mode = "near"; update(); if (!state.geo && !state.originPicked) $("geoBtn").click(); };
 $("city").onchange = e => { state.city = e.target.value; update(); };
 $("origin").oninput = e => { const p = matchPlace(e.target.value); if (p) { state.origin = p[0]; state.geo = null; render(); } updateHint(); };
-$("origin").onchange = e => { const p = matchPlace(e.target.value); if (p) { state.origin = p[0]; state.geo = null; e.target.value = p[0]; update(); } updateHint(); };
+$("origin").onchange = e => { const p = matchPlace(e.target.value); if (p) { state.origin = p[0]; state.geo = null; state.originPicked = true; e.target.value = p[0]; update(); } updateHint(); };
 $("radius").oninput = e => { state.radius = +e.target.value; $("radiusOut").textContent = state.radius + " km"; render(); };
 $("radius").onchange = () => save();
 $("geoBtn").onclick = () => {
@@ -936,6 +936,8 @@ $("langBtn").onclick = () => { LANG = LANG === "fr" ? "en" : "fr"; try { localSt
 
 /* ---------- start ---------- */
 restore();
+/* If location was already allowed on an earlier visit, use it quietly (never stored). */
+try { navigator.permissions && navigator.permissions.query({ name: "geolocation" }).then(p => { if (p.state === "granted") navigator.geolocation.getCurrentPosition(q => { state.geo = [q.coords.latitude, q.coords.longitude]; state.mode = "near"; $("origin").value = ""; if (state.sport) update(); else buildHome(); }, () => {}, { timeout: 10000, maximumAge: 600000 }); }).catch(() => {}); } catch {}
 $("placeList").innerHTML = PLACES.map(p => `<option value="${esc(p[0])}"></option>`).join("");
 applyLang();
 { const q = new URLSearchParams(location.search), qc = q.get("city");
