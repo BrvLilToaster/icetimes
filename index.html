@@ -143,6 +143,14 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .htb-link { white-space: nowrap; color: var(--accent); }
 .side a { color: var(--accent); }
 .card.cancelled { opacity: .6; }
+.star { background: none; border: 0; padding: 2px 4px; margin: -4px -4px 0 0; cursor: pointer; color: var(--muted); font-size: 21px; line-height: 1; border-radius: 6px; }
+.star[aria-pressed="true"] { color: #e8a317; }
+@media (hover: hover) { .star:hover { color: #e8a317; } }
+.star:focus-visible { outline: 2px solid var(--accent); }
+.rstar { color: #e8a317; margin-right: 2px; }
+.favbar { margin-bottom: 10px; }
+.favbar .chip[aria-pressed="true"] { background: #fdf3dc; border-color: #e8a317; }
+@media (max-width: 520px) { .card { position: relative; } .card .what { padding-right: 26px; } .card .star { position: absolute; top: 10px; right: 10px; margin: 0; } }
 /* ---- footer ---- */
 .site-foot { max-width: 1200px; margin: 36px auto 0; padding: 0 20px 40px; font-size: 14px; color: var(--muted); }
 .site-foot a { color: var(--accent); }
@@ -404,6 +412,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   <section>
     <div class="fbar" id="fbar" hidden></div>
+    <div class="favbar" id="favBar" hidden></div>
     <div aria-live="polite" class="summary"><h2 id="sumTitle"></h2><p id="sumSub"></p></div>
     <div id="notices"></div>
     <div class="list" id="list"></div>
@@ -510,6 +519,12 @@ function busyOf(r) {
   busyCache.set(r.id, b); return b;
 }
 let openId = null;
+/* Saved sessions and rinks: kept only in this browser (localStorage), never sent anywhere. */
+const favKey = r => `${r.day}|${r.start}|${r.rink}|${r.session}`;
+const FAV = (() => { try { const f = JSON.parse(localStorage.getItem("iceFavs") || "null") || {}; return { s: new Set(f.s || []), r: new Set(f.r || []) }; } catch { return { s: new Set(), r: new Set() }; } })();
+const saveFav = () => { try { localStorage.setItem("iceFavs", JSON.stringify({ s: [...FAV.s], r: [...FAV.r] })); } catch {} };
+const isFav = r => FAV.s.has(favKey(r)) || FAV.r.has(r.rink);
+const favCount = () => DATA.filter(r => FAV.s.has(favKey(r))).length + [...FAV.r].filter(k => DATA.some(r => r.rink === k)).length;
 const GENDER_TAG = new Proxy({}, { get: (_, k) => t("gTag")[k] });
 const GENDER_HINT = new Proxy({ any: 1, open: 1, women: 1 }, { get: (o, k) => k in o ? t("gHint")[k] : undefined });
 const state = { types: new Set(TYPES.map(t => t[0])), mode: "city", city: "All", origin: "Vancouver", radius: 25, gender: "any", locSet: false, daySet: false, week: false, typeTouched: false,
@@ -627,6 +642,7 @@ function detailsHTML(r, date) {
         <a class="btn primary" data-track="directions" href="${gmaps(r, true)}" target="_blank" rel="noopener">${t("directions")}</a>
         <a class="btn" data-track="google_maps" href="${gmaps(r, false)}" target="_blank" rel="noopener">${t("openMaps")}</a>
         ${bookLink(r) ? `<a class="btn" data-track="book_online" href="${bookLink(r)}" target="_blank" rel="noopener">${esc(t(r.priv ? "bookOnline" : "bookCity", r.city))}</a>` : ""}${link && !(r.priv && r.link) ? `<a class="btn" data-track="city_schedule" href="${link}" target="_blank" rel="noopener">${esc(t("citySched", r.city))}</a>` : ""}
+        <button type="button" class="btn" data-favr="${r.id}" data-track="save_rink" aria-pressed="${FAV.r.has(r.rink)}">${esc(t(FAV.r.has(r.rink) ? "favROn" : "favR"))}</button>
         <button type="button" class="btn" data-share="${r.id}|${isoOf(date)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>${esc(t("shareBtn"))}</button>
       </div>
       <a class="report" data-track="report_problem" href="${reportMail(r, date)}">${t("reportLink")}</a>
@@ -690,7 +706,7 @@ const L = {
   free: "Free", seeRink: "See rink", bkDrop: "Drop-in", bkDoor: "Drop-in · pay at the door", bkWalk: "Walk-in",
   bkSign: h => `Sign up ${h} h ahead`, bkBook: h => `Book online, up to ${h} h ahead`, bkMon: "Pre-register (opens Mon 6 am, a week ahead)",
   bkNVRC: "Book through NVRC", bkPre: "Pre-register", bkPre2: "Pre-register 2 days ahead", bkPreRec: "Pre-register recommended",
-  privTag: "Private rink · book online", bookOnline: "Book online", bookBtn: "Book", bookAria: (s, r) => `Book ${s} at ${r} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`, htbCity: c => `How booking works in ${c}`, htbAll: "How to book: rules and links for each city",
+  privTag: "Private rink · book online", bookOnline: "Book online", bookBtn: "Book", favS: s => `Save ${s} to your list`, favSOn: s => `${s} saved. Tap to remove`, favR: "☆ Save this rink", favROn: "★ Rink saved", favBtn: n => `★ Saved (${n})`, favT: "Saved", favEmpty: "Nothing saved for these days.", favHow: "Tap ☆ on a session to save it, or open a session and tap “Save this rink” to keep every session there. Saves stay on this device.", bookAria: (s, r) => `Book ${s} at ${r} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`, htbCity: c => `How booking works in ${c}`, htbAll: "How to book: rules and links for each city",
   toTime: "to", directions: "Directions", openMaps: "Open in Google Maps", citySched: c => `${c} schedule`, allAtRink: d => `All ice at this rink on ${d}s`,
   gmapRoute: c => `Driving route from ${c}`, gmapTitle: r => `Google map of ${r}`,
   mapCap: c => `Centred on ${c} · grey dots are other rinks · map ©`, osm: "OpenStreetMap contributors", mapAria: (c, r, d) => `Street map centred on ${c} showing ${r}, ${d} away`,
@@ -757,7 +773,7 @@ const L = {
   free: "Gratuit", seeRink: "Voir la patinoire", bkDrop: "Accès libre", bkDoor: "Accès libre · paiement sur place", bkWalk: "Sans réservation",
   bkSign: h => `Inscription ${h} h à l'avance`, bkBook: h => `Réservation en ligne, jusqu'à ${h} h à l'avance`, bkMon: "Préinscription (ouvre le lundi 6 h, une semaine avant)",
   bkNVRC: "Réserver auprès de NVRC", bkPre: "Préinscription", bkPre2: "Préinscription 2 jours avant", bkPreRec: "Préinscription recommandée",
-  privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne", bookBtn: "Réserver", bookAria: (s, r) => `Réserver ${s} à ${r} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`, htbCity: c => `Comment réserver à ${c}`, htbAll: "Comment réserver : règles et liens par ville",
+  privTag: "Patinoire privée · réservation en ligne", bookOnline: "Réserver en ligne", bookBtn: "Réserver", favS: s => `Enregistrer ${s} dans votre liste`, favSOn: s => `${s} enregistré. Touchez pour retirer`, favR: "☆ Enregistrer cette patinoire", favROn: "★ Patinoire enregistrée", favBtn: n => `★ Enregistrés (${n})`, favT: "Enregistrés", favEmpty: "Rien d’enregistré pour ces jours.", favHow: "Touchez ☆ sur une séance pour l’enregistrer, ou ouvrez une séance et touchez « Enregistrer cette patinoire » pour garder toutes ses séances. Les choix restent sur cet appareil.", bookAria: (s, r) => `Réserver ${s} à ${r} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`, htbCity: c => `Comment réserver à ${c}`, htbAll: "Comment réserver : règles et liens par ville",
   toTime: "à", directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", citySched: c => `Horaire de ${c}`, allAtRink: d => `Toutes les séances à cette patinoire le ${d}`,
   gmapRoute: c => `Itinéraire en voiture depuis ${c}`, gmapTitle: r => `Carte Google de ${r}`,
   mapCap: c => `Centrée sur ${c} · points gris : autres patinoires · carte ©`, osm: "contributeurs d'OpenStreetMap", mapAria: (c, r, d) => `Carte centrée sur ${c} montrant ${r}, à ${d}`,
@@ -908,6 +924,9 @@ function typeChanged() { state.typeTouched = true; }
 function isoOf(d) { return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 function rowsFor(iso, useLoc, place, nowMin) {
   const date = parseISO(iso), dow = DAYS[date.getDay()];
+  if (state.favOnly) return DATA.filter(r => r.day === dow && isFav(r)).map(r => ({ ...r, iso, dateObj: date, dist: RINKS[r.rink] ? km([place[1], place[2]], RINKS[r.rink]) : null }))
+    .filter(r => r.end > state.from && r.start < state.to && (iso !== isoToday() || r.end > nowMin)).map(r => (r.cancelled = cancelledOn(r.notes, date), r))
+    .sort((a, b) => a.start - b.start || a.rink.localeCompare(b.rink));
   let rows = DATA.filter(r => r.day === dow && state.types.has(r.type));
   if (state.gender === "open") rows = rows.filter(r => r.gender === "all");
   else if (state.gender === "women") rows = rows.filter(r => r.gender === "women" || r.gender === "women+gd");
@@ -922,6 +941,8 @@ function rowsFor(iso, useLoc, place, nowMin) {
 function render() {
   updateSummaries(); buildDayChips();
   save();
+  const fc = favCount(); if (!fc && state.favOnly) state.favOnly = false;
+  $("favBar").hidden = !fc; $("favBar").innerHTML = fc ? `<button type="button" class="chip" id="favBtn" data-track="saved_filter" aria-pressed="${!!state.favOnly}">${esc(t("favBtn", fc))}</button>` : "";
   const browse = isBrowse();
   const now = new Date(), nowMin = now.getHours()*60 + now.getMinutes(), todayISO = isoToday();
   const place = originPlace() || PLACES[0];
@@ -933,7 +954,10 @@ function render() {
   document.querySelectorAll("[data-count]").forEach(el => el.textContent = t("sess", open.length));
   const rinkCount = new Set(open.map(r => r.rink)).size;
   const timeTxt = state.todayMode ? t("fromOn", fmt(nowMin)) : fmt(state.from) + "–" + (state.to === 1440 ? t("midnight") : fmt(state.to));
-  if (browse) {
+  if (state.favOnly) {
+    $("sumTitle").textContent = `${t("favT")} · ${t("sess", open.length)}`;
+    $("sumSub").textContent = `${t("rinks", rinkCount)} · ${browse ? t("tNext7") : dateFmt(parseISO(state.date), { weekday: "long", month: "short", day: "numeric" })}`;
+  } else if (browse) {
     $("sumTitle").textContent = `${t("sess", open.length)} · ${t("tNext7")}`;
     const whereW = !state.locSet ? t("everyCity") : state.mode === "city" ? (state.city === "All" ? t("allCitiesL") : state.city) : t("withinL", state.radius, originName());
     $("sumSub").textContent = `${t("rinks", rinkCount)} · ${whereW}${state.from === 360 && state.to === 1440 ? "" : " · " + timeTxt}`;
@@ -952,6 +976,10 @@ function render() {
   if (sharedGone) { notes.unshift(t("shGone")); sharedGone = false; }
   $("notices").innerHTML = notes.map(n => `<div class="notice">${esc(n)}</div>`).join("");
 
+  if (!rows.length && state.favOnly) {
+    $("list").innerHTML = `<div class="empty"><p class="et">${esc(t("favEmpty"))}</p><p>${esc(t("favHow"))}</p>${browse ? "" : `<button type="button" class="today-btn" id="weekBtn">${t("show7")}</button>`}</div>`;
+    const wb = $("weekBtn"); if (wb) wb.onclick = () => { state.week = true; state.daySet = true; state.todayMode = false; state.date = isoToday(); syncControls(); render(); };
+    return; }
   if (!rows.length) {
     const whereE = state.mode === "city" ? (state.city === "All" ? "" : t("whereIn", state.city)) : t("whereWithin", state.radius, originName());
     const isTodayE = state.date === todayISO;
@@ -971,12 +999,13 @@ function render() {
       <div class="what">
         ${sameName(r) ? "" : `<span class="pill">${esc(typeLbl(r.type))}</span>`}
         <span class="name">${esc(sameName(r) ? typeLbl(r.type) : r.session)}</span>
-        <span class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span><b>${esc(r.rink)}</b> · ${esc(r.city)}</span>${r.ages ? `<span class="ages">· ${esc(r.ages)}</span>` : ""}</span>
+        <span class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span>${FAV.r.has(r.rink) ? `<span class="rstar" aria-hidden="true">★</span>` : ""}<b>${esc(r.rink)}</b> · ${esc(r.city)}</span>${r.ages ? `<span class="ages">· ${esc(r.ages)}</span>` : ""}</span>
         ${bookShort(r) ? `<span class="meta">${esc(bookShort(r))}</span>` : ""}
         ${cardNote(r) ? `<span class="meta">${esc(cardNote(r))}</span>` : ""}
         ${r.cancelled ? `<span class="tag">${t("cancelled")}</span>` : GENDER_TAG[r.gender] ? `<span class="tag gender">${GENDER_TAG[r.gender]}</span>` : running ? `<span class="tag" style="background:var(--accent-soft);color:var(--accent)">${t("onNow")}</span>` : ""}
       </div>
       <div class="side">
+        <button type="button" class="star" data-stop data-fav="${r.id}" data-track="save_session" aria-pressed="${FAV.s.has(favKey(r))}" aria-label="${esc(t(FAV.s.has(favKey(r)) ? "favSOn" : "favS", r.session))}" title="${esc(t(FAV.s.has(favKey(r)) ? "favSOn" : "favS", r.session))}">${FAV.s.has(favKey(r)) ? "★" : "☆"}</button>
         ${state.mode === "near" && r.dist != null ? `<span class="km">${r.dist.toFixed(1)} km</span>` : ""}
         <span class="cost" title="${esc(r.cost)}">${esc(costShort(r.cost))}</span>${bookLink(r) ? `<a class="book" data-track="book_online" href="${bookLink(r)}" target="_blank" rel="noopener" aria-label="${esc(t("bookAria", r.session, r.rink))}">${esc(t("bookBtn"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a>` : ""}
         ${busyOf(r) ? `<span class="busy busy-${busyOf(r).level}"><i></i>${esc(t("busy_" + busyOf(r).level))}</span>` : ""}
@@ -1164,7 +1193,7 @@ $("date").onchange = e => { if (e.target.value) { state.date = e.target.value; s
 $("from").onchange = e => { state.from = +e.target.value; if (state.to <= state.from) state.to = Math.min(1440, state.from + 60); state.todayMode = false; syncControls(); render(); };
 $("to").onchange = e => { state.to = +e.target.value; if (state.to <= state.from) state.from = Math.max(360, state.to - 60); state.todayMode = false; syncControls(); render(); };
 $("todayBtn").onclick = () => { const n = new Date(); state.date = isoToday(); state.todayMode = true; state.week = false; state.from = 360; state.to = 1440; syncControls(); render(); };
-$("resetBtn").onclick = () => { state.types = new Set(TYPES.map(t => t[0])); state.mode = "city"; state.city = "All"; state.radius = 25; state.origin = "Vancouver"; state.geo = null; state.gender = "any"; state.locSet = false; state.daySet = false; state.week = false; state.typeTouched = false; state.date = isoToday(); state.from = 360; state.to = 1440; state.todayMode = false; buildTypeChips(); syncControls(); render(); };
+$("resetBtn").onclick = () => { state.favOnly = false; state.types = new Set(TYPES.map(t => t[0])); state.mode = "city"; state.city = "All"; state.radius = 25; state.origin = "Vancouver"; state.geo = null; state.gender = "any"; state.locSet = false; state.daySet = false; state.week = false; state.typeTouched = false; state.date = isoToday(); state.from = 360; state.to = 1440; state.todayMode = false; buildTypeChips(); syncControls(); render(); };
 
 /* ---------- footer + feedback ---------- */
 const FEEDBACK_EMAIL = "feedback@icetimes.ca";
@@ -1259,6 +1288,17 @@ $("shareDlg").addEventListener("click", e => {
   const c = e.target.closest("[data-copy]"); if (c) { copyLink(c); return; }
   const a = e.target.closest("a[data-m]"); if (a) { shareTrack(a.dataset.m); setTimeout(closeShare, 150); }
 });
+$("list").addEventListener("click", e => {
+  const f = e.target.closest("[data-fav], [data-favr]"); if (!f) return;
+  const r = DATA[+(f.dataset.fav ?? f.dataset.favr)];
+  if (f.dataset.fav != null) { const k = favKey(r); FAV.s.has(k) ? FAV.s.delete(k) : FAV.s.add(k); }
+  else FAV.r.has(r.rink) ? FAV.r.delete(r.rink) : FAV.r.add(r.rink);
+  saveFav(); render();
+  const again = document.querySelector(`.card[data-id="${r.id}"] ${f.dataset.fav != null ? "[data-fav]" : "[data-favr]"}`); if (again) again.focus({ preventScroll: true });
+});
+document.addEventListener("click", e => { if (!e.target.closest("#favBtn")) return;
+  state.favOnly = !state.favOnly; if (state.favOnly && !state.daySet) { state.week = true; state.todayMode = false; state.date = isoToday(); }
+  openId = null; syncControls(); render(); });
 $("list").addEventListener("click", e => {
   const b = e.target.closest("[data-share]"); if (!b) return;
   const [id, iso] = b.dataset.share.split("|"); startShare(sessionShare(DATA[+id], iso));

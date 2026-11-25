@@ -189,6 +189,14 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .htb-link { white-space: nowrap; color: var(--accent); }
 .more { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .card.cancelled { opacity: .55; }
+.star { background: none; border: 0; padding: 2px 4px; margin: -4px -4px 0 0; cursor: pointer; color: var(--muted); font-size: 21px; line-height: 1; border-radius: 6px; }
+.star[aria-pressed="true"] { color: #e8a317; }
+@media (hover: hover) { .star:hover { color: #e8a317; } }
+.star:focus-visible { outline: 2px solid var(--accent); }
+.rstar { color: #e8a317; margin-right: 2px; }
+.favbar { margin-bottom: 10px; }
+.favbar .chip[aria-pressed="true"], .schip.fav { background: #fdf3dc; border-color: #e8a317; }
+@media (max-width: 520px) { .card { position: relative; } .card .what { padding-right: 26px; } .card .star { position: absolute; top: 10px; right: 10px; margin: 0; } }
 .details { grid-column: 1 / -1; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; cursor: default; }
 @media (max-width: 640px) { .details { grid-template-columns: 1fr; } }
 .facts { display: grid; grid-template-columns: 86px 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
@@ -330,6 +338,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button type="button" class="cta fdone" id="fdone"></button>
   </aside>
   <section>
+    <div class="favbar" id="favBar" hidden></div>
     <div aria-live="polite" class="summary"><h2 id="sumTitle"></h2><p id="sumSub"></p></div>
     <div id="notices"></div>
     <div class="list" id="list"></div>
@@ -525,7 +534,7 @@ const L = {
   few: n => `Only ${plural(n, "session", "sessions")} with these filters.`,
   todayDot: "Today · ", tomorrowDot: "Tomorrow · ", toTime: "to", more: "Details", less: "Less", onNow: "On now", cancelled: "Cancelled on this date",
   fSession: "Session", fSport: "Sport", fFor: "For", fPlace: "Place", fRoom: "Room", fAddress: "Address", fCost: "Cost", fBooking: "Booking", fNotes: "Notes",
-  directions: "Directions", openMaps: "Open in Google Maps", official: "Official schedule", bookOnline: "Book online", bookBtn: "Book", gmapRoute: c => `Driving route from ${c}`, gmapTitle: v => `Google map of ${v}`, bookAria: (s, v) => `Book ${s} at ${v} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`, htbCity: c => `How booking works in ${c}`, htbAll: "How to book: rules and links for each city", privTag: "Private rink · book online",
+  directions: "Directions", openMaps: "Open in Google Maps", official: "Official schedule", bookOnline: "Book online", bookBtn: "Book", favS: s => `Save ${s} to your list`, favSOn: s => `${s} saved. Tap to remove`, favR: "☆ Save this place", favROn: "★ Place saved", favBtn: n => `★ Saved (${n})`, favT: "Saved", favEmpty: "Nothing saved for these days.", favHow: "Tap ☆ on a session to save it, or open a session and tap “Save this place” to keep every session there. Saves stay on this device.", gmapRoute: c => `Driving route from ${c}`, gmapTitle: v => `Google map of ${v}`, bookAria: (s, v) => `Book ${s} at ${v} (opens the booking site)`, bookCity: c => `Book on ${c}'s site`, htbCity: c => `How booking works in ${c}`, htbAll: "How to book: rules and links for each city", privTag: "Private rink · book online",
   alsoAt: d => `Everything here on ${d}`, reportLink: "Report a problem with this session",
   shareSite: "Share", shareBtn: "Share", shareSessH: "Share this session", shareSiteH: "Share Drop-in Finder", shareSportH: s => `Share ${s} times`,
   shNative: "Share with your phone's apps…", shCopy: "Copy link", shCopied: "Link copied ✓", shText: "Text message", shEmail: "Email",
@@ -571,7 +580,7 @@ const L = {
   few: n => `Seulement ${plural(n, "séance", "séances")} avec ces filtres.`,
   todayDot: "Aujourd'hui · ", tomorrowDot: "Demain · ", toTime: "à", more: "Détails", less: "Moins", onNow: "En cours", cancelled: "Annulée à cette date",
   fSession: "Séance", fSport: "Sport", fFor: "Pour", fPlace: "Lieu", fRoom: "Salle", fAddress: "Adresse", fCost: "Coût", fBooking: "Réservation", fNotes: "Remarques",
-  directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", official: "Horaire officiel", bookOnline: "Réserver en ligne", bookBtn: "Réserver", gmapRoute: c => `Itinéraire en voiture depuis ${c}`, gmapTitle: v => `Carte Google de ${v}`, bookAria: (s, v) => `Réserver ${s} à ${v} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`, htbCity: c => `Comment réserver à ${c}`, htbAll: "Comment réserver : règles et liens par ville", privTag: "Patinoire privée · réservation en ligne",
+  directions: "Itinéraire", openMaps: "Ouvrir dans Google Maps", official: "Horaire officiel", bookOnline: "Réserver en ligne", bookBtn: "Réserver", favS: s => `Enregistrer ${s} dans votre liste`, favSOn: s => `${s} enregistré. Touchez pour retirer`, favR: "☆ Enregistrer ce lieu", favROn: "★ Lieu enregistré", favBtn: n => `★ Enregistrés (${n})`, favT: "Enregistrés", favEmpty: "Rien d’enregistré pour ces jours.", favHow: "Touchez ☆ sur une séance pour l’enregistrer, ou ouvrez une séance et touchez « Enregistrer ce lieu » pour garder toutes ses séances. Les choix restent sur cet appareil.", gmapRoute: c => `Itinéraire en voiture depuis ${c}`, gmapTitle: v => `Carte Google de ${v}`, bookAria: (s, v) => `Réserver ${s} à ${v} (ouvre le site de réservation)`, bookCity: c => `Réserver sur le site de ${c}`, htbCity: c => `Comment réserver à ${c}`, htbAll: "Comment réserver : règles et liens par ville", privTag: "Patinoire privée · réservation en ligne",
   alsoAt: d => `Tout ce qui a lieu ici le ${d}`, reportLink: "Signaler un problème avec cette séance",
   shareSite: "Partager", shareBtn: "Partager", shareSessH: "Partager cette séance", shareSiteH: "Partager Drop-in Finder", shareSportH: s => `Partager : ${s}`,
   shNative: "Partager avec les applis du téléphone…", shCopy: "Copier le lien", shCopied: "Lien copié ✓", shText: "Texto", shEmail: "Courriel",
@@ -627,6 +636,12 @@ const PERIODS = [["pAny", 300, 1440], ["pMorning", 300, 720], ["pAfternoon", 720
 const DEF = { sport: null, mode: "city", city: "All", origin: "Burnaby", radius: 15, geo: null, when: "today", date: isoToday(), period: 0, who: "any", women: false };
 const state = { ...DEF };
 let openId = null, recent = [];
+/* Saved sessions and places: kept only in this browser (localStorage), never sent anywhere. */
+const favKey = r => `${r.day}|${r.start}|${r.venue}|${r.session}`;
+const FAV = (() => { try { const f = JSON.parse(localStorage.getItem("dropFavs") || "null") || {}; return { s: new Set(f.s || []), v: new Set(f.v || []) }; } catch { return { s: new Set(), v: new Set() }; } })();
+const saveFav = () => { try { localStorage.setItem("dropFavs", JSON.stringify({ s: [...FAV.s], v: [...FAV.v] })); } catch {} };
+const isFav = r => FAV.s.has(favKey(r)) || FAV.v.has(r.venue);
+const favCount = () => ROWS.filter(r => FAV.s.has(favKey(r))).length + [...FAV.v].filter(k => ROWS.some(r => r.venue === k)).length;
 function save() { try { localStorage.setItem("dropFinder", JSON.stringify({ mode: state.mode, city: state.city, origin: state.origin, radius: state.radius, who: state.who })); localStorage.setItem("dropRecent", JSON.stringify(recent)); } catch {} }
 function restore() { try { const s = JSON.parse(localStorage.getItem("dropFinder") || "null");
   if (s) { if (s.mode === "near" || s.mode === "city") state.mode = s.mode; if (s.city) state.city = s.city; if (matchPlace(s.origin)) state.origin = s.origin; if (s.radius >= 2 && s.radius <= 60) state.radius = s.radius; if (t("who")[s.who]) state.who = s.who; }
@@ -660,7 +675,7 @@ function matchesBase(r, { sport = sportsFor(), ignoreWhere = false } = {}) {
 }
 function rowsOn(iso, opts = {}) {
   const date = parseISO(iso), dow = DAYS[date.getDay()], [, a, b] = PERIODS[opts.period ?? state.period], today = iso === isoToday(), nm = nowMin(), o = originPt();
-  return ROWS.filter(r => r.day === dow && matchesBase(r, opts) && r.end > a && r.start < b && (!today || r.end > nm))
+  return ROWS.filter(r => r.day === dow && (state.favOnly ? isFav(r) : matchesBase(r, opts)) && r.end > a && r.start < b && (!today || r.end > nm))
     .map(r => ({ ...r, iso, dateObj: date, dist: o && COORDS[r.venue] ? km(o, COORDS[r.venue]) : null, cancelled: cancelledOn(r.notes, date) }))
     .sort((x, y) => x.start - y.start || (x.dist ?? 0) - (y.dist ?? 0) || x.venue.localeCompare(y.venue));
 }
@@ -677,8 +692,9 @@ function buildHome() {
     if (r.day === dow && r.end > nm && matchesBase(r, { sport: r.sport })) { s.today++; if (r.start >= nm && (s.next == null || r.start < s.next)) s.next = r.start; } }
   const tile = k => { const s = byS[k]; return `<button type="button" class="tile" style="--c:${SCOL[k]}" data-sport="${k}"><span class="ic">${icon(k)}</span><span class="tn">${esc(spLbl(k))}</span><span class="tc">${t("tileToday", s.today, s.next != null ? fmt(s.next) : "", s.week)}</span></button>`; };
   $("groups").innerHTML = GROUPS.map(g => `<section class="grp"><h3>${esc(t("grp")[g])}</h3><div class="tiles">${SPORTS.filter(s => s[1] === g).map(s => tile(s[0])).join("")}</div></section>`).join("");
-  $("recent").hidden = !recent.length;
-  $("recent").innerHTML = `<span class="lbl">${esc(t("recent"))}</span>` + recent.map(k => `<button type="button" class="schip" style="--c:${SCOL[k]}" data-sport="${k}">${icon(k)}${esc(spLbl(k))}</button>`).join("");
+  const fc = favCount();
+  $("recent").hidden = !recent.length && !fc;
+  $("recent").innerHTML = (fc ? `<button type="button" class="schip fav" data-favopen>${esc(t("favBtn", fc))}</button>` : "") + (recent.length ? `<span class="lbl">${esc(t("recent"))}</span>` : "") + recent.map(k => `<button type="button" class="schip" style="--c:${SCOL[k]}" data-sport="${k}">${icon(k)}${esc(spLbl(k))}</button>`).join("");
 }
 
 /* ---------- results ---------- */
@@ -726,11 +742,12 @@ function card(r) {
     <div class="what">
       <span class="pill">${icon(r.sport)}${esc(spLbl(r.sport))}</span>
       <span class="name">${esc(r.session)}</span>
-      <span class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>${esc(r.venue)} · ${esc(r.city)}</span>
+      <span class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>${FAV.v.has(r.venue) ? `<span class="rstar" aria-hidden="true">★</span>` : ""}${esc(r.venue)} · ${esc(r.city)}</span>
       ${who || g || st || r.priv ? `<span class="tags">${st}${who}${g}${r.priv ? `<span class="tag">${esc(t("privTag"))}</span>` : ""}</span>` : ""}
       ${r.notes ? `<span class="meta">${esc(r.notes)}</span>` : ""}
     </div>
     <div class="side">
+      <button type="button" class="star" data-stop data-fav="${r.id}" aria-pressed="${FAV.s.has(favKey(r))}" aria-label="${esc(t(FAV.s.has(favKey(r)) ? "favSOn" : "favS", r.session))}" title="${esc(t(FAV.s.has(favKey(r)) ? "favSOn" : "favS", r.session))}">${FAV.s.has(favKey(r)) ? "★" : "☆"}</button>
       ${r.dist != null ? `<span class="km">${r.dist.toFixed(1)} km</span>` : ""}
       <span class="cost">${esc(r.cost)}</span>
       ${bookUrl(r) ? `<a class="book" data-book href="${bookUrl(r)}" target="_blank" rel="noopener" aria-label="${esc(t("bookAria", r.session, r.venue))}">${esc(t("bookBtn"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a>` : ""}
@@ -755,6 +772,7 @@ function details(r) {
         <a class="btn primary" href="${gmaps(r, true)}" target="_blank" rel="noopener">${esc(t("directions"))}</a>
         <a class="btn" href="${gmaps(r, false)}" target="_blank" rel="noopener">${esc(t("openMaps"))}</a>
         ${bookUrl(r) ? `<a class="btn" data-book href="${bookUrl(r)}" target="_blank" rel="noopener">${esc(r.priv ? t("bookOnline") : t("bookCity", r.city))}</a>` : ""}${link && !(r.priv && r.link) ? `<a class="btn" href="${link}" target="_blank" rel="noopener">${esc(t("official"))}</a>` : ""}
+        <button type="button" class="btn" data-favr="${r.id}" aria-pressed="${FAV.v.has(r.venue)}">${esc(t(FAV.v.has(r.venue) ? "favROn" : "favR"))}</button>
         <button type="button" class="btn" data-share="${r.id}|${r.iso}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>${esc(t("shareBtn"))}</button>
       </div>
       <a class="report" href="${mailto(t("repSubject", r.session, r.venue), t("repBody", r.session, r.venue, r.city, dTxt, fmt(r.start) + "–" + fmt(r.end)))}">${esc(t("reportLink"))}</a>
@@ -765,11 +783,13 @@ function details(r) {
 }
 function render() {
   buildChips();
+  const fc = favCount(); if (!fc && state.favOnly) state.favOnly = false;
+  $("favBar").hidden = !fc; $("favBar").innerHTML = fc ? `<button type="button" class="chip" id="favBtn" aria-pressed="${!!state.favOnly}">${esc(t("favBtn", fc))}</button>` : "";
   const dates = datesFor(), rows = dates.flatMap(iso => rowsOn(iso)), open = rows.filter(r => !r.cancelled);
-  const title = state.sport === "all" ? spLbl("all") : spLbl(state.sport);
+  const title = state.favOnly ? t("favT") : state.sport === "all" ? spLbl("all") : spLbl(state.sport);
   $("sumTitle").textContent = `${title} · ${t("sess", open.length)}`;
   const vn = new Set(open.map(r => r.venue)).size, per = state.period ? " · " + t(PERIODS[state.period][0]).toLowerCase() : "";
-  $("sumSub").textContent = `${whenTxt()}${state.when === "today" ? " (" + t("restToday") + ")" : ""} · ${t("venues", vn)} · ${whereTxt()}${per}`;
+  $("sumSub").textContent = `${whenTxt()}${state.when === "today" ? " (" + t("restToday") + ")" : ""} · ${t("venues", vn)}${state.favOnly ? "" : " · " + whereTxt()}${per}`;
   // mobile summary
   const n = (state.mode === "near" || state.city !== "All") + (state.when !== "today") + (state.period !== 0) + (state.who !== "any") + state.women;
   $("fbadge").textContent = n; $("fbadge").hidden = !n;
@@ -785,7 +805,7 @@ function render() {
   if (sharedGone) { notes.unshift(t("shGone")); sharedGone = false; }
   $("notices").innerHTML = notes.map(x => `<div class="notice">${esc(x)}</div>`).join("");
   if (!rows.length) {
-    $("list").innerHTML = `<div class="empty"><p class="et">${esc(t("emptyT"))}</p><p>${esc(t("emptyP"))}</p>${state.when !== "week" ? `<button type="button" class="cta" data-week>${esc(t("show7"))}</button>` : ""}</div>`;
+    $("list").innerHTML = `<div class="empty"><p class="et">${esc(t(state.favOnly ? "favEmpty" : "emptyT"))}</p><p>${esc(t(state.favOnly ? "favHow" : "emptyP"))}</p>${state.when !== "week" ? `<button type="button" class="cta" data-week>${esc(t("show7"))}</button>` : ""}</div>`;
     return; }
   let html = "";
   if (dates.length === 1) html = rows.map(card).join("");
@@ -799,6 +819,7 @@ function render() {
 /* ---------- view switching ---------- */
 function showHome() { state.sport = null; openId = null; $("home").hidden = false; $("results").hidden = true; $("sbarWrap").hidden = true; buildHome(); if (location.hash) history.replaceState(null, "", location.pathname + location.search); }
 function pickSport(k, when) {
+  if (!state.favOnly || k !== "all" || when !== "week") state.favOnly = false;
   state.sport = k; openId = null; if (when) state.when = when;
   if (k !== "all") { recent = [k, ...recent.filter(x => x !== k)].slice(0, 4); }
   $("home").hidden = true; $("results").hidden = false; $("sbarWrap").hidden = false;
@@ -833,7 +854,7 @@ $("geoBtn").onclick = () => {
 };
 $("date").onchange = e => { if (e.target.value) { state.date = e.target.value; state.when = e.target.value === isoToday() ? "today" : "date"; update(); } };
 $("women").onchange = e => { state.women = e.target.checked; update(); };
-$("resetBtn").onclick = () => { Object.assign(state, { ...DEF, sport: state.sport, date: isoToday() }); buildCities(); update(); };
+$("resetBtn").onclick = () => { state.favOnly = false; Object.assign(state, { ...DEF, sport: state.sport, date: isoToday() }); buildCities(); update(); };
 $("ftoggle").onclick = () => { const p = $("panel"), open = p.classList.toggle("collapsed"); $("ftoggle").setAttribute("aria-expanded", !open); };
 $("fdone").onclick = () => { $("panel").classList.add("collapsed"); $("ftoggle").setAttribute("aria-expanded", "false"); $("sumTitle").scrollIntoView({ block: "start", behavior: "smooth" }); };
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (openShared(h)) return; if ((SPK.includes(h) || h === "all") && h !== state.sport) pickSport(h); else if (!h && state.sport) showHome(); });
@@ -904,6 +925,17 @@ $("shareDlg").addEventListener("click", e => {
   if (e.target.closest("[data-native]")) { navigator.share({ title: shareData.title, text: shareData.text, url: shareData.url }).then(() => { track("native"); closeShare(); }).catch(() => {}); return; }
   const c = e.target.closest("[data-copy]"); if (c) { copyLink(c); return; }
   const a = e.target.closest("a[data-m]"); if (a) { track(a.dataset.m); setTimeout(closeShare, 150); }
+});
+$("list").addEventListener("click", e => {
+  const f = e.target.closest("[data-fav], [data-favr]"); if (!f) return;
+  const isS = f.dataset.fav != null, r = ROWS[+(isS ? f.dataset.fav : f.dataset.favr)], card = f.closest(".card"), k = card && card.dataset.k;
+  if (isS) { const key = favKey(r); FAV.s.has(key) ? FAV.s.delete(key) : FAV.s.add(key); } else FAV.v.has(r.venue) ? FAV.v.delete(r.venue) : FAV.v.add(r.venue);
+  saveFav(); try { (window.dataLayer = window.dataLayer || []).push({ event: isS ? "save_session" : "save_place", drop_sport: r.sport, drop_city: r.city, drop_venue: r.venue }); } catch {}
+  render(); const again = k && document.querySelector(`.card[data-k="${k}"] ${isS ? "[data-fav]" : "[data-favr]"}`); if (again) again.focus({ preventScroll: true });
+});
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-favopen]")) { state.favOnly = true; pickSport("all", "week"); return; }
+  if (e.target.closest("#favBtn")) { state.favOnly = !state.favOnly; if (state.favOnly && state.when === "today") state.when = "week"; openId = null; update(); }
 });
 $("list").addEventListener("click", e => {
   const b = e.target.closest("[data-share]"); if (!b) return;
