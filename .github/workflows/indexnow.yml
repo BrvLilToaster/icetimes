@@ -1,0 +1,17 @@
+# After GitHub Pages publishes a new version, tell IndexNow search engines (Bing, Yandex, Seznam…) which pages changed.
+name: Notify search engines
+on: page_build
+permissions:
+  contents: read
+jobs:
+  indexnow:
+    if: github.event.build.status == 'built'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Wait for the new pages to go live
+        run: sleep 90
+      - name: Send changed pages to IndexNow
+        run: python3 tools/indexnow.py --changed

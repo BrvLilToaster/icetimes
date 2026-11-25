@@ -9,7 +9,7 @@ It writes:
   sitemap.xml, robots.txt
 and refreshes the "Browse by city / type" links between the SEO-LINKS markers in index.html.
 """
-import datetime, html, json, os, re, shutil
+import datetime, html, json, os, re, shutil, zoneinfo
 from collections import Counter, defaultdict
 
 SITE = "https://icetimes.ca"
@@ -45,7 +45,72 @@ def load():
     s = open(os.path.join(ROOT, "index.html"), encoding="utf-8").read()
     rows = json.loads(re.search(r"const SNAPSHOT = (\[.*?\]);\n", s).group(1))
     m = re.search(r"Last updated <b>([^<]+)</b>", s)
+    v = re.search(r"const VALID_TO = (\{.*?\});", s, re.S)
+    VALID_TO.update(json.loads(v.group(1)) if v else {})
     return s, rows, (m.group(1) if m else "")
+
+
+VALID_TO = {}          # city -> last date its published ice schedule covers (from index.html)
+UPD = {"ice": None, "gym": None}   # datetime.date of the last ice / gym data refresh
+TZ = zoneinfo.ZoneInfo("America/Vancouver")
+WD = {d: i for i, d in enumerate(DAYS)}  # Mon=0
+
+
+def parse_upd(txt):
+    try:
+        return datetime.datetime.strptime(txt.strip(), "%b %d, %Y").date()
+    except Exception:
+        return None
+
+
+def upd_line(d):
+    """Visible freshness line under each page's heading."""
+    if not d:
+        return '<p class="upd">Refreshed weekly from official schedules</p>'
+    nxt = d + datetime.timedelta(days=7)
+    return (f'<p class="upd">Updated <time datetime="{d.isoformat()}">{d.strftime("%b")} {d.day}, {d.year}</time>'
+            f' · next update by {nxt.strftime("%b")} {nxt.day} · times copied from official city and rink schedules</p>')
+
+
+def price_of(cost):
+    m = re.search(r"\$(\d+(?:\.\d\d)?)", cost or "")
+    if m:
+        return m.group(1)
+    return "0" if re.search(r"\bfree\b", cost or "", re.I) else None
+
+
+def events_ld(rows, place_id, upd, city, kind):
+    """schema.org Events with a weekly Schedule, one per session (days grouped). kind: 'ice' or 'gym'."""
+    if not upd:
+        return []
+    end = VALID_TO.get(city) if kind == "ice" else None
+    end = datetime.date.fromisoformat(end) if end else upd + datetime.timedelta(days=13)
+    groups = defaultdict(list)
+    for r in rows:
+        name = r["session"]
+        groups[(name, r.get("type") or r.get("sport"), r["start"], r["end"], r.get("cost", ""), r.get("ages", ""))].append(r["day"])
+    out = []
+    for (name, kd, a, b, cost, ages), days in sorted(groups.items(), key=lambda kv: (min(WD[d] for d in kv[1]), kv[0][2])):
+        days = sorted(set(days), key=WD.get)
+        # next occurrence on/after the refresh date, with the real UTC offset for that day
+        first = min(upd + datetime.timedelta(days=(WD[d] - upd.weekday()) % 7) for d in days)
+        st = datetime.datetime.combine(first, datetime.time(a // 60 % 24, a % 60), TZ)
+        en = datetime.datetime.combine(first, datetime.time(min(b, 1439) // 60, min(b, 1439) % 60), TZ)
+        label = kd if kind == "ice" else SPORT_INFO[kd][1]
+        ev = {"@type": "Event", "name": name if label.lower() in name.lower() else f"{name} ({label})",
+              "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode", "eventStatus": "https://schema.org/EventScheduled",
+              "startDate": st.isoformat(), "endDate": en.isoformat(), "location": {"@id": place_id},
+              "eventSchedule": {"@type": "Schedule", "byDay": [f"https://schema.org/{DAY_NAME[d]}" for d in days],
+                                "startTime": f"{a // 60 % 24:02d}:{a % 60:02d}", "endTime": f"{min(b, 1439) // 60:02d}:{min(b, 1439) % 60:02d}",
+                                "repeatFrequency": "P1W", "scheduleTimezone": "America/Vancouver",
+                                "startDate": upd.isoformat(), "endDate": end.isoformat()},
+              "description": ", ".join(x for x in [label, f"ages {ages}" if ages and ages[0].isdigit() else ages, cost] if x)}
+        pr = price_of(cost)
+        if pr is not None:
+            ev["isAccessibleForFree"] = pr == "0"
+            ev["offers"] = {"@type": "Offer", "price": pr, "priceCurrency": "CAD", "url": f"{SITE}/how-to-book/#{htb_anchor(city)}"}
+        out.append(ev)
+    return out
 
 
 GTM_HEAD = f"""<script>(function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':
@@ -65,7 +130,7 @@ a{color:var(--accent)}.wrap{max-width:1000px;margin:0 auto;padding:18px 20px 48p
 .crumbs{font-size:14px;color:var(--muted);margin:16px 0 4px}.crumbs a{color:var(--muted)}
 h1{font:700 clamp(28px,4.4vw,40px)/1.1 "Barlow Condensed","Arial Narrow",sans-serif;margin:6px 0 10px}
 h2{font:700 24px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:30px 0 10px;text-transform:uppercase;letter-spacing:.4px}
-.lead{font-size:17px;max-width:760px}.note{background:#fde9d9;border-left:4px solid #a84300;border-radius:6px;padding:9px 12px;font-size:14px;margin:14px 0}
+.upd{color:#5b6573;font-size:13px;margin:-4px 0 12px}.lead{font-size:17px;max-width:760px}.note{background:#fde9d9;border-left:4px solid #a84300;border-radius:6px;padding:9px 12px;font-size:14px;margin:14px 0}
 .cta{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font:700 18px/1 "Barlow Condensed","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.6px;padding:13px 18px;border-radius:8px;margin:8px 0}
 .rinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;padding:0;list-style:none}
 .rinks li{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px}
@@ -90,8 +155,15 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-si
 PIN = '<svg viewBox="0 0 26 34" aria-hidden="true"><path d="M13 1C6.4 1 1 6.3 1 12.9 1 22 13 33 13 33s12-11 12-20.1C25 6.3 19.6 1 13 1z" fill="#d7262e"/><ellipse cx="13" cy="12.5" rx="6.5" ry="3.4" fill="#0b2d6b"/><ellipse cx="13" cy="11.3" rx="6.5" ry="3.4" fill="#fff"/></svg>'
 
 
-def page(path, title, desc, h1, crumbs, body, jsonld):
+def page(path, title, desc, h1, crumbs, body, jsonld, modified=None):
     url = f"{SITE}/{path}"
+    if modified:
+        node = {"@type": "WebPage", "@id": url, "url": url, "name": title, "dateModified": modified.isoformat(),
+                "isPartOf": {"@type": "WebSite", "name": "Open Ice Finder", "url": SITE + "/"}}
+        jsonld = dict(jsonld)
+        ctx = jsonld.pop("@context", "https://schema.org")
+        graph = jsonld.pop("@graph", None) or [jsonld]
+        jsonld = {"@context": ctx, "@graph": [node] + graph}
     return f"""<!DOCTYPE html>
 <html lang="en-CA">
 <head>
@@ -118,6 +190,7 @@ def page(path, title, desc, h1, crumbs, body, jsonld):
 <header class="top"><a class="brand" href="/">{PIN}<span>OPEN ICE <b>FINDER</b></span></a><a href="/">Search all times →</a></header>
 <nav class="crumbs" aria-label="Breadcrumb">{crumbs}</nav>
 <h1>{e(h1)}</h1>
+{upd_line(modified)}
 {body}
 <footer>
 <p><b>Check the rink's website before you go.</b> Times are copied every week from city and rink schedules and can change at short notice (tournaments, holidays, maintenance).</p>
@@ -370,6 +443,7 @@ def prune(base, keep):
 
 def build_places_and_sports(ice, when):
     gym, gym_upd = load_sports()
+    UPD["gym"] = parse_upd(gym_upd)
     gym_when = f"Collected {gym_upd}" if gym_upd else when
     paths = []
 
@@ -415,12 +489,15 @@ def build_places_and_sports(ice, when):
         others = sorted(n for n, w in venues.items() if w["city"] == v["city"] and n != name)[:12]
         if others:
             body += f'<h2>Other places in {e(v["city"])}</h2><ul class="links">' + "".join(f'<li><a href="/places/{slug(o)}/">{e(o)}</a></li>' for o in others) + "</ul>"
-        place = {"@type": "IceRink" if n_ice and not n_gym else "SportsActivityLocation", "name": name, "url": f"{SITE}/places/{ps}/",
+        pid = f"{SITE}/places/{ps}/#place"
+        place = {"@type": "IceRink" if n_ice and not n_gym else "SportsActivityLocation", "@id": pid, "name": name, "url": f"{SITE}/places/{ps}/",
                  "address": {"@type": "PostalAddress", "streetAddress": v["address"].rsplit(",", 1)[0], "addressLocality": v["city"],
                              "addressRegion": "BC", "addressCountry": "CA"}}
-        ld = {"@context": "https://schema.org", "@graph": [ld_crumbs(("Open Ice Finder", "/"), (v["city"], f"/{slug(v['city'])}/") if os.path.isdir(os.path.join(ROOT, slug(v["city"]))) else ("Places", "/places/"), (name, f"/places/{ps}/")), place]}
+        ld = {"@context": "https://schema.org", "@graph": [ld_crumbs(("Open Ice Finder", "/"), (v["city"], f"/{slug(v['city'])}/") if os.path.isdir(os.path.join(ROOT, slug(v["city"]))) else ("Places", "/places/"), (name, f"/places/{ps}/")), place]
+              + events_ld(v["ice"], pid, UPD["ice"], v["city"], "ice") + events_ld(v["gym"], pid, UPD["gym"], v["city"], "gym")}
+        mod = max([d for d, n in ((UPD["ice"], n_ice), (UPD["gym"], n_gym)) if d and n], default=None)
         cr = f'<a href="/">Open Ice Finder</a> › <a href="/places/">Places</a> › {e(name)}'
-        write(f"places/{ps}", page(f"places/{ps}/", title, desc, f"{name}: drop-in times", cr, body, ld))
+        write(f"places/{ps}", page(f"places/{ps}/", title, desc, f"{name}: drop-in times", cr, body, ld, mod))
         paths.append(f"places/{ps}/")
 
     # places index
@@ -431,7 +508,8 @@ def build_places_and_sports(ice, when):
                          f"Drop-in skating, hockey and gym sports schedules for {len(venues)} rinks and community centres across the Lower Mainland, updated weekly.",
                          "Rinks & community centres", crumbs("Places"),
                          f'<p class="lead">This week\'s drop-in schedule for each of the {len(venues)} rinks and community centres on Open Ice Finder.</p>' + "".join(lis),
-                         {"@context": "https://schema.org", **ld_crumbs(("Open Ice Finder", "/"), ("Places", "/places/"))}))
+                         {"@context": "https://schema.org", **ld_crumbs(("Open Ice Finder", "/"), ("Places", "/places/"))},
+                         max([d for d in UPD.values() if d], default=None)))
     paths.append("places/")
 
     # ---------- sport hubs + sport-by-city ----------
@@ -459,7 +537,7 @@ def build_places_and_sports(ice, when):
                     f'<p class="muted"><a href="/sports/{sl}/">Drop-in {e(noun)} in other cities →</a></p>')
             cr = f'<a href="/">Open Ice Finder</a> › <a href="/sports/{sl}/">{e(name)}</a> › {e(city)}'
             ld = {"@context": "https://schema.org", **ld_crumbs(("Open Ice Finder", "/"), (name, f"/sports/{sl}/"), (city, "/" + path))}
-            write(path.rstrip("/"), page(path, title, desc, f"Drop-in {noun} in {city}", cr, body, ld))
+            write(path.rstrip("/"), page(path, title, desc, f"Drop-in {noun} in {city}", cr, body, ld, UPD["gym"]))
             paths.append(path); city_pages.append((city, n))
         path = f"sports/{sl}/"
         nc = len(bycity)
@@ -473,7 +551,7 @@ def build_places_and_sports(ice, when):
                 + f'<h2>This week\'s {e(noun)} times</h2>{gym_tables(rs, True, True)}')
         cr = f'<a href="/">Open Ice Finder</a> › <a href="/sports/">Drop-in sports</a> › {e(name)}'
         ld = {"@context": "https://schema.org", **ld_crumbs(("Open Ice Finder", "/"), ("Drop-in sports", "/sports/"), (name, "/" + path))}
-        write(path.rstrip("/"), page(path, title, desc, f"Drop-in {noun} in Vancouver & the Lower Mainland", cr, body, ld))
+        write(path.rstrip("/"), page(path, title, desc, f"Drop-in {noun} in Vancouver & the Lower Mainland", cr, body, ld, UPD["gym"]))
         paths.append(path); hub_links.append((sl, name, len(rs)))
 
     prune("places", {p.rstrip("/") for p in paths})
@@ -481,8 +559,39 @@ def build_places_and_sports(ice, when):
     return paths, hub_links, by_city
 
 
+GLANCE_GROUPS = [("Stick & puck", ["Stick & Puck"]), ("Drop-in hockey & shinny", ["Drop-in Hockey"]),
+                 ("Public, adult, family & youth skating", ["Public Skate", "Adult Public Skate", "Family Skate", "Youth Skate"]),
+                 ("Figure skating practice ice", ["Figure Skating"])]
+
+
+def glance_block(rows, upd):
+    """Plain-text copy of the week's ice times on the main page, for readers that don't run JavaScript (search engines, AI assistants)."""
+    when = (f'Updated <time datetime="{upd.isoformat()}">{upd.strftime("%b")} {upd.day}, {upd.year}</time>, next update by '
+            f'{(upd + datetime.timedelta(days=7)).strftime("%b")} {(upd + datetime.timedelta(days=7)).day}.') if upd else "Updated weekly."
+    out = [f'<!--GLANCE--><section class="browse glance" aria-labelledby="glanceH"><details><summary><h2 id="glanceH">This week\'s ice times as a plain list</h2></summary>'
+           f'<p>{when} Weekly drop-in times across Metro Vancouver, copied from official city and rink schedules; times repeat each week unless noted. '
+           f'Check the rink\'s website before you go. Booking rules: <a href="/how-to-book/">how to book</a>.</p>']
+    for title, types in GLANCE_GROUPS:
+        rs = [r for r in rows if r["type"] in types]
+        if not rs:
+            continue
+        out.append(f"<h3>{e(title)}</h3>")
+        for city in sorted({r["city"] for r in rs}):
+            items = []
+            for r in sorted((r for r in rs if r["city"] == city), key=lambda r: (WD[r["day"]], r["start"], r["rink"])):
+                pr = price_of(r.get("cost"))
+                extra = [x for x in [r.get("ages") or "", "free" if pr == "0" else f"${pr}" if pr else "",
+                                     "book online" if r.get("priv") else ""] if x]
+                nm = "" if r["session"].strip().lower() in (r["type"].lower(), "public skate", "stick & puck") else f' {e(r["session"])},'
+                items.append(f'{r["day"]} {fmt(r["start"])}–{fmt(r["end"])}{nm} {e(r["rink"])}' + (f' ({e(", ".join(extra))})' if extra else ""))
+            out.append(f'<p><b><a href="/{slug(city)}/">{e(city)}</a>:</b> ' + "; ".join(items) + ".</p>")
+    out.append("</details></section><!--/GLANCE-->")
+    return "".join(out)
+
+
 def main():
     idx, rows, updated = load()
+    UPD["ice"] = parse_upd(updated)
     cities = sorted({r["city"] for r in rows})
     types_present = {r["type"] for r in rows}
     clinks, tlinks = links_block(cities, types_present)
@@ -513,7 +622,7 @@ def main():
                 {"@type": "ListItem", "position": i + 1, "item": it} for i, it in enumerate(rink_ld(rs))]}]}
         path = f"{slug(city)}/"
         os.makedirs(os.path.join(ROOT, slug(city)), exist_ok=True)
-        open(os.path.join(ROOT, slug(city), "index.html"), "w", encoding="utf-8").write(page(path, title, desc, h1, crumbs(city), body, ld))
+        open(os.path.join(ROOT, slug(city), "index.html"), "w", encoding="utf-8").write(page(path, title, desc, h1, crumbs(city), body, ld, UPD["ice"]))
         paths.append(path)
 
     for t, (sl, noun, plural) in TYPES.items():
@@ -536,7 +645,7 @@ def main():
             {"@type": "ListItem", "position": 1, "name": "Open Ice Finder", "item": SITE + "/"},
             {"@type": "ListItem", "position": 2, "name": noun, "item": f"{SITE}/{sl}/"}]}
         os.makedirs(os.path.join(ROOT, sl), exist_ok=True)
-        open(os.path.join(ROOT, sl, "index.html"), "w", encoding="utf-8").write(page(f"{sl}/", title, desc, h1, crumbs(noun), body, ld))
+        open(os.path.join(ROOT, sl, "index.html"), "w", encoding="utf-8").write(page(f"{sl}/", title, desc, h1, crumbs(noun), body, ld, UPD["ice"]))
         paths.append(f"{sl}/")
 
     # how-to-book guide
@@ -568,6 +677,11 @@ def main():
              f'<h2>Browse this week\'s ice times</h2><p>By city:</p><ul>{clinks}</ul><p>By type of ice time:</p><ul>{tlinks}</ul>'
              f'<p>Drop-in sports:</p><ul>{slinks}</ul><p><a href="/places/">Every rink &amp; community centre →</a></p></section><!--/SEO-LINKS-->')
     idx2 = re.sub(r"<!--SEO-LINKS-->.*?<!--/SEO-LINKS-->", lambda m: block, idx, flags=re.S)
+    glance = glance_block(rows, UPD["ice"])
+    if "<!--GLANCE-->" in idx2:
+        idx2 = re.sub(r"<!--GLANCE-->.*?<!--/GLANCE-->", lambda m: glance, idx2, flags=re.S)
+    else:
+        idx2 = idx2.replace("<!--SEO-LINKS-->", glance + "\n<!--SEO-LINKS-->", 1)
     if idx2 != idx:
         open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8").write(idx2)
 
