@@ -431,7 +431,7 @@ const WEEKLY = { "Vancouver|gym": "Nov 22â€“28", "North Vancouver|gym": "Nov 23â
 const BOOK = {
   "Vancouver": { ice: "https://anc.ca.apm.activecommunities.com/vancouver/calendars" },
   "Burnaby": { ice: "https://www.burnaby.ca/webreg", gym: "https://www.burnaby.ca/webreg" },
-  "Richmond": { ice: "https://www.richmond.ca/parks-recreation/about/arenas/fees.htm", gym: "https://www.richmond.ca/parks-recreation/registration.htm" },
+  "Richmond": { ice: "https://www.richmond.ca/parks-recreation/about/arenas/fees.htm", ric: "https://richmondcity.perfectmind.com/23650/Clients/BookMe4BookingPages/Classes?calendarId=8bd697eb-ee1e-4067-b6bb-be1901a7753d&widgetId=15f6af07-39c5-473e-b053-96653f77a406&embed=False", gym: "https://www.richmond.ca/parks-recreation/registration.htm" },
   "Surrey": { hockey: "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?calendarId=7333623a-774c-4e63-aaac-b85a2cfbd17d&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False", figure: "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?calendarId=5b599b6d-d54f-43c1-b86a-e962d9bf107b&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False", gym: "https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4?widgetId=b4059e75-9755-401f-a7b5-d7c75361420d" },
   "Coquitlam": { ice: "https://www.coquitlam.ca/979", gym: "https://www.coquitlam.ca/979" },
   "Port Coquitlam": { ice: "https://www.portcoquitlam.ca/register", gym: "https://www.portcoquitlam.ca/register" },
@@ -466,6 +466,7 @@ function bookUrl(r) {
   if (r.priv) return canlanUrl(r);
   const B = BOOK[r.city] || {};
   if (!ICE.has(r.sport)) return B.gym || "";
+  if (r.city === "Richmond" && r.venue === "Richmond Ice Centre") return B.ric;
   if (r.city === "Surrey") return /figure/i.test(r.session) ? B.figure : B.hockey;
   return B.ice || "";
 }
