@@ -29,3 +29,8 @@ show a placeholder like "500 spots left" (Delta).
 
 - Readings 0–240 min before the start, on 3+ dates → quiet (<40% full) / moderate / busy (80%+).
 - Seen full before the start on 2+ dates → "Often fills up · book early".
+
+## Richmond Olympic Oval (added Nov 26, 2026)
+- Drop-in ice list: https://richmondoval.ca/drop_ins/drop-in-ice/ (Mindbody widget inside the page; shows 7 days, booking opens 8 pm 7 days ahead).
+- Read-only: click each day in the widget and note Drop In Stick and Puck / Drop In Public Skating times. Never press Register or sign in.
+- The Oval's times change week to week: each refresh, replace the three-or-so "Richmond Olympic Oval" rows in SNAPSHOT with the coming week's sessions.
