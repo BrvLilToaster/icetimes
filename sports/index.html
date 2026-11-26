@@ -168,7 +168,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none !important; } }
 .card[aria-expanded="true"] { border-color: var(--c); box-shadow: 0 6px 22px -14px rgba(0,0,0,.45); }
-@media (max-width: 520px) { .card { grid-template-columns: 74px 1fr; }
+@media (max-width: 520px) { .card { grid-template-columns: 74px minmax(0, 1fr); }
   /* Phones: price on the left, Book and Details always pinned to the right edge */
   .card .side { grid-column: 1 / -1; justify-self: stretch; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; text-align: left; }
   .card .side .cost { flex: 1 1 0; min-width: 0; max-width: none; }
@@ -194,7 +194,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .book { display: inline-flex; align-items: center; align-self: center; gap: 3px; padding: 5px 10px; border-radius: 6px; background: var(--accent); color: var(--accent-ink) !important; font: 600 13px var(--font-body, system-ui); text-decoration: none; white-space: nowrap; }
 .book svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .book:hover { filter: brightness(1.08); }
-.htb-link { white-space: nowrap; color: var(--accent); }
+.htb-link { color: var(--accent); }
 .more { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .card.cancelled { opacity: .55; }
 .star { background: none; border: 0; padding: 2px 4px; margin: -4px -4px 0 0; cursor: pointer; color: var(--muted); font-size: 21px; line-height: 1; border-radius: 6px; }
@@ -206,7 +206,10 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .favbar .chip[aria-pressed="true"], .schip.fav { background: #fdf3dc; border-color: #e8a317; }
 @media (max-width: 520px) { .card { position: relative; } .card .what { padding-right: 26px; } .card .star { position: absolute; top: 10px; right: 10px; margin: 0; } }
 .details { grid-column: 1 / -1; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; cursor: default; }
-@media (max-width: 640px) { .details { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .details { grid-template-columns: minmax(0, 1fr); } }
+/* Keep long links, text and the map inside the card on narrow screens */
+.details > * { min-width: 0; }
+.details a, .details dd { overflow-wrap: anywhere; }
 .facts { display: grid; grid-template-columns: 86px 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
 .facts dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; padding-top: 2px; }
 .facts dd { margin: 0; }
