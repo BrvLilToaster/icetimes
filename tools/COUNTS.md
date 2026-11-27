@@ -34,3 +34,7 @@ show a placeholder like "500 spots left" (Delta).
 - Drop-in ice list: https://richmondoval.ca/drop_ins/drop-in-ice/ (Mindbody widget inside the page; shows 7 days, booking opens 8 pm 7 days ahead).
 - Read-only: click each day in the widget and note Drop In Stick and Puck / Drop In Public Skating times. Never press Register or sign in.
 - The Oval's times change week to week: each refresh, replace the three-or-so "Richmond Olympic Oval" rows in SNAPSHOT with the coming week's sessions.
+
+## Canlan Scotia Barn (Burnaby) note (Nov 27, 2026)
+- Scotia Barn stick & puck is NOT under program_types=73; check https://apps.daysmartrecreation.com/dash/x/canlan/event-registration?date=YYYY-MM-DD&facility_ids=1 (no program filter). Read-only, never Add to cart.
+- Times shift week to week (e.g. Fri Nov 27 was 12:30-1:35 vs usual 12:00-1:05). Re-check each refresh.
