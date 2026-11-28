@@ -119,7 +119,7 @@ def collect_surrey(page, snap, today):
             break
         btn.first.click()
         page.wait_for_timeout(2500)
-    lines = [l.strip() for l in page.locator("main").inner_text().splitlines() if l.strip()]
+    lines = [l.strip() for l in page.locator("body").inner_text().splitlines() if l.strip()]
     rows, cur, last = [], None, None
     tre = re.compile(r"^(\d{1,2}:\d{2} [ap]m) - (\d{1,2}:\d{2} [ap]m)$", re.I)
     for i, l in enumerate(lines):
@@ -198,7 +198,10 @@ def collect_canlan(page, snap, today):
                 m = tre.match(l)
                 if not m or i == 0:
                     continue
-                name = lines[i - 1]
+                j = i - 1
+                while j > 0 and re.match(r"^\$?\d+(\.\d\d)?$|^free$", lines[j], re.I):
+                    j -= 1
+                name = lines[j]
                 typ = canlan_type(name)
                 if not typ:
                     continue
