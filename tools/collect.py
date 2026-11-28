@@ -34,7 +34,8 @@ def dump(page, name):
     try:
         txt = page.locator("body").inner_text()
         (DEBUG / f"{name}.txt").write_text(txt, encoding="utf-8")
-        print(f"===== DUMP {name} =====\n" + txt[:2500].replace("\n", " ⏎ ") + "\n===== END =====")
+        i = max(txt.find("Showing"), 0) if name.startswith("canlan") else 0
+        print(f"===== DUMP {name} =====\n" + txt[i:i + 1800].replace("\n", " ⏎ ") + "\n===== END =====")
         page.screenshot(path=str(DEBUG / f"{name}.png"), full_page=False)
     except Exception as e:
         print(f"  (debug dump {name} failed: {e})", file=sys.stderr)
@@ -109,7 +110,7 @@ def surrey_rink(loc):
 def collect_surrey(page, snap, today):
     page.goto(SURREY_URL, wait_until="domcontentloaded", timeout=60000)
     try:
-        page.wait_for_selector("text=/Events for/", timeout=60000)
+        page.wait_for_selector("text=/\\d{2}:\\d{2} [ap]m - /", timeout=60000)
     finally:
         dump(page, "surrey_first")
     for _ in range(12):
@@ -122,7 +123,7 @@ def collect_surrey(page, snap, today):
     rows, cur, last = [], None, None
     tre = re.compile(r"^(\d{1,2}:\d{2} [ap]m) - (\d{1,2}:\d{2} [ap]m)$", re.I)
     for i, l in enumerate(lines):
-        m = re.match(r"^Events for \w+, (\w+) (\d+)\w*, (\d{4})$", l)
+        m = re.match(r"^(?:Events for )?\w{3}, (\w+) (\d+)\w*, (\d{4})$", l)
         if m:
             cur = dt.datetime.strptime(f"{m.group(1)[:3]} {m.group(2)} {m.group(3)}", "%b %d %Y").date()
             last = cur
@@ -133,7 +134,7 @@ def collect_surrey(page, snap, today):
         j = i - 1
         while j >= 0 and (re.match(r"^#\d+$", lines[j]) or lines[j].lower() in ("register", "waitlist")):
             j -= 1
-        name, typ = surrey_name(lines[j])
+        name, typ = surrey_name(re.sub(r"\s+#\d+$", "", lines[j]))
         rink = surrey_rink(lines[i + 1]) if i + 1 < len(lines) else None
         if not (typ and rink) or cur < today:
             continue
@@ -176,11 +177,15 @@ def collect_canlan(page, snap, today):
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=60000)
                 page.wait_for_selector("text=/\\d+ EVENTS?/i", timeout=45000)
+                try:
+                    page.wait_for_selector("text=/Showing all results|Registered/", timeout=8000)
+                except Exception:
+                    pass
                 page.wait_for_timeout(1500)
                 if page.locator("text=Loading...").count() and page.locator("text=Loading...").first.is_visible():
                     page.wait_for_timeout(4000)
                 text = page.locator("body").inner_text()
-                if k < 2:
+                if k in (2, 3):
                     dump(page, f"canlan_{fac}_{d.isoformat()}")
             except Exception as e:
                 print(f"  Canlan {rink} {d}: {e.__class__.__name__}", file=sys.stderr)
