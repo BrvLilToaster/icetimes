@@ -32,7 +32,9 @@ def dump(page, name):
         return
     DEBUG.mkdir(parents=True, exist_ok=True)
     try:
-        (DEBUG / f"{name}.txt").write_text(page.locator("body").inner_text(), encoding="utf-8")
+        txt = page.locator("body").inner_text()
+        (DEBUG / f"{name}.txt").write_text(txt, encoding="utf-8")
+        print(f"===== DUMP {name} =====\n" + txt[:2500].replace("\n", " ⏎ ") + "\n===== END =====")
         page.screenshot(path=str(DEBUG / f"{name}.png"), full_page=False)
     except Exception as e:
         print(f"  (debug dump {name} failed: {e})", file=sys.stderr)
