@@ -14,7 +14,7 @@ so the site falls back to the weekly pattern for it.
 
 Run:  python3 tools/collect.py            (needs: pip install playwright; playwright install chromium)
 """
-import datetime as dt, json, re, sys, zoneinfo
+import datetime as dt, json, os, re, sys, zoneinfo
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -23,6 +23,19 @@ TZ = zoneinfo.ZoneInfo("America/Vancouver")
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36 icetimes.ca-collector (+https://icetimes.ca)"
 CANLAN_DAYS = 10
+DEBUG = Path(os.environ["COLLECT_DEBUG"]) if os.environ.get("COLLECT_DEBUG") else None
+
+
+def dump(page, name):
+    """Debug runs: keep what the page looked like (text + screenshot) so parsing can be checked."""
+    if not DEBUG:
+        return
+    DEBUG.mkdir(parents=True, exist_ok=True)
+    try:
+        (DEBUG / f"{name}.txt").write_text(page.locator("body").inner_text(), encoding="utf-8")
+        page.screenshot(path=str(DEBUG / f"{name}.png"), full_page=False)
+    except Exception as e:
+        print(f"  (debug dump {name} failed: {e})", file=sys.stderr)
 
 SURREY_URL = ("https://cityofsurrey.perfectmind.com/23615/Clients/BookMe4BookingPages/Classes?"
               "calendarId=7333623a-774c-4e63-aaac-b85a2cfbd17d&widgetId=b4059e75-9755-401f-a7b5-d7c75361420d&embed=False")
@@ -93,7 +106,10 @@ def surrey_rink(loc):
 
 def collect_surrey(page, snap, today):
     page.goto(SURREY_URL, wait_until="domcontentloaded", timeout=60000)
-    page.wait_for_selector("text=/Events for/", timeout=60000)
+    try:
+        page.wait_for_selector("text=/Events for/", timeout=60000)
+    finally:
+        dump(page, "surrey_first")
     for _ in range(12):
         btn = page.locator("button:has-text('Load More')")
         if not btn.count() or not btn.first.is_visible():
@@ -162,6 +178,8 @@ def collect_canlan(page, snap, today):
                 if page.locator("text=Loading...").count() and page.locator("text=Loading...").first.is_visible():
                     page.wait_for_timeout(4000)
                 text = page.locator("body").inner_text()
+                if k < 2:
+                    dump(page, f"canlan_{fac}_{d.isoformat()}")
             except Exception as e:
                 print(f"  Canlan {rink} {d}: {e.__class__.__name__}", file=sys.stderr)
                 continue
@@ -184,7 +202,10 @@ def collect_canlan(page, snap, today):
                     r["full"] = True
                 rows.append(r)
             ok_days.append(d)
-        # cover only the unbroken run of days that loaded, starting today
+        # cover only the unbroken run of days that loaded, starting today, and only if something was found
+        if not any(r["rink"] == rink for r in rows):
+            print(f"  Canlan {rink}: no sessions recognised in {len(ok_days)} days; not covering it", file=sys.stderr)
+            continue
         run = 0
         while run < len(ok_days) and ok_days[run] == today + dt.timedelta(days=run):
             run += 1

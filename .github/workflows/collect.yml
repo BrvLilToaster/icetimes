@@ -4,7 +4,12 @@ name: Collect live ice times
 on:
   schedule:
     - cron: "17 13,23 * * *"   # about 5:17 am and 3:17 pm Vancouver time
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Test only: save page dumps, don't publish"
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -24,8 +29,17 @@ jobs:
           pip install playwright==1.49.1
           python -m playwright install --with-deps chromium
       - name: Read booking lists
+        env:
+          COLLECT_DEBUG: ${{ inputs.dry_run && 'debug' || '' }}
         run: python3 tools/collect.py
+      - name: Keep page dumps (test runs)
+        if: ${{ always() && inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: page-dumps
+          path: debug/
       - name: Publish if anything changed
+        if: ${{ !inputs.dry_run }}
         run: |
           if git diff --quiet index.html; then echo "No changes"; exit 0; fi
           git config user.name "github-actions[bot]"
