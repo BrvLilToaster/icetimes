@@ -1,0 +1,35 @@
+# Reads Surrey's and Canlan's public booking lists twice a day and updates the dated sessions on icetimes.ca.
+# Read-only: it never signs in, books or adds to a cart. See tools/collect.py.
+name: Collect live ice times
+on:
+  schedule:
+    - cron: "17 13,23 * * *"   # about 5:17 am and 3:17 pm Vancouver time
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: collect
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install browser
+        run: |
+          pip install playwright==1.49.1
+          python -m playwright install --with-deps chromium
+      - name: Read booking lists
+        run: python3 tools/collect.py
+      - name: Publish if anything changed
+        run: |
+          if git diff --quiet index.html; then echo "No changes"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Live times: Surrey & Canlan booking lists ($(TZ=America/Vancouver date '+%b %-d %-I:%M %p'))"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin main && break; sleep 5; done

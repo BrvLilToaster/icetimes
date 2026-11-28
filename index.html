@@ -515,7 +515,12 @@ const WEEKLY = ["Vancouver", "Delta", "Port Moody", "North Vancouver"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-let DATA = SNAPSHOT;
+/*LIVE*/const LIVE = {"checked":"","cover":[],"rows":[]};/*/LIVE*/
+/* LIVE: real dated sessions from the daily collector (tools/collect.py). Where it has checked a rink and type
+   for a date, those sessions replace the weekly pattern, so one-off changes and cancellations show correctly. */
+let DATA = SNAPSHOT.concat(LIVE.rows);
+const liveCovers = (r, iso) => LIVE.cover.some(c => c.rink === r.rink && c.types.includes(r.type) && iso >= c.from && iso <= c.to);
+const onDate = (r, iso, dow) => r.date ? r.date === iso : r.day === dow && !liveCovers(r, iso);
 /* Gender restriction, read from the session name and ages, so new weekly data is tagged automatically. */
 function genderOf(r) {
   const t = (r.session + " " + r.ages).toLowerCase();
@@ -548,7 +553,7 @@ const favKey = r => `${r.day}|${r.start}|${r.rink}|${r.session}`;
 const FAV = (() => { try { const f = JSON.parse(localStorage.getItem("iceFavs") || "null") || {}; return { s: new Set(f.s || []), r: new Set(f.r || []) }; } catch { return { s: new Set(), r: new Set() }; } })();
 const saveFav = () => { try { localStorage.setItem("iceFavs", JSON.stringify({ s: [...FAV.s], r: [...FAV.r] })); } catch {} };
 const isFav = r => FAV.s.has(favKey(r)) || FAV.r.has(r.rink);
-const favCount = () => DATA.filter(r => FAV.s.has(favKey(r))).length + [...FAV.r].filter(k => DATA.some(r => r.rink === k)).length;
+const favCount = () => SNAPSHOT.filter(r => FAV.s.has(favKey(r))).length + [...FAV.r].filter(k => DATA.some(r => r.rink === k)).length;
 const GENDER_TAG = new Proxy({}, { get: (_, k) => t("gTag")[k] });
 const GENDER_HINT = new Proxy({ any: 1, open: 1, women: 1 }, { get: (o, k) => k in o ? t("gHint")[k] : undefined });
 const state = { types: new Set(TYPES.map(t => t[0])), mode: "near", city: "All", origin: "", radius: 25, gender: "any", locSet: false, daySet: false, week: false, typeTouched: false,
@@ -648,7 +653,7 @@ function mapSVG(r) {
 }
 function detailsHTML(r, date) {
   const dateTxt = dateFmt(date, { weekday: "long", month: "short", day: "numeric" });
-  const same = DATA.filter(x => x.rink === r.rink && x.day === r.day).sort((a, b) => a.start - b.start);
+  const same = DATA.filter(x => x.rink === r.rink && onDate(x, isoOf(date), r.day)).sort((a, b) => a.start - b.start);
   const link = CITY_LINKS[r.city];
   const fact = (k, v) => v ? `<dt>${k}</dt><dd>${v}</dd>` : "";
   return `<div class="details" data-stop>
@@ -702,7 +707,7 @@ const L = {
  en: {
   brandSr: "Open Ice Finder: Lower Mainland drop-in ice times", title: "Drop-in Hockey, Stick & Puck & Public Skating Times – Metro Vancouver | Open Ice Finder",
   disclaimer: `<b>Check the rink's website before you go.</b> <span class="dlong">Times come from city and rink schedules and can change at short notice.</span><span class="dshort">Times can change at short notice.</span>`,
-  updated: d => `Last updated <b>${d}</b> · refreshed weekly`,
+  updated: (d, c) => `Last updated <b>${d}</b> · ${c ? `Surrey &amp; Canlan rechecked ${c}` : "refreshed weekly"}`, liveToday: "today",
   filtersAria: "Search filters", todayBtn: "Show open ice today", lgType: "Type of ice time", lgGender: "Gender", gAny: "Any", gOpen: "Open to all", gWomen: "Women's",
   lgLoc: "Location", byCity: "By city", nearMe: "Near me", cityLbl: "City", originLbl: "Or type a city or neighbourhood", originPh: "Start typing, e.g. Vancouver", useLoc: "Use my current location", locDeniedIOS: "Location is blocked for this site. On iPhone, open Settings → Privacy & Security → Location Services → Safari Websites and choose While Using the App. Then in Safari, tap the aA (page menu) button in the address bar → Website Settings → Location → Ask, and try again. Or just type a place above.", locDenied: "Location is blocked for this site. Allow it in your browser's site settings (the icon beside the web address), then try again. Or just type a place above.", locSlow: "Your phone took too long to find you. Try again, or type a place above.",  locating: "Finding you…", locFail: "Couldn’t get your location. Type a place above instead.", myLoc: "your location",
   within: "Within", radiusHint: "Straight-line distance from your location or the place you enter.", lgDay: "Day", lgTime: "Time of day", from: "From", to: "To", reset: "Reset filters",
@@ -769,7 +774,7 @@ const L = {
  fr: {
   brandSr: "Open Ice Finder : glace libre dans le Lower Mainland", title: "Hockey libre, bâton et rondelle et patin libre – Grand Vancouver | Open Ice Finder",
   disclaimer: `<b>Vérifiez le site de la patinoire avant d'y aller.</b> <span class="dlong">Les heures proviennent des horaires des villes et des patinoires et peuvent changer à court préavis.</span><span class="dshort">Les heures peuvent changer à court préavis.</span>`,
-  updated: d => `Mis à jour le <b>${d}</b> · actualisé chaque semaine`,
+  updated: (d, c) => `Mis à jour le <b>${d}</b> · ${c ? `Surrey et Canlan revérifiés ${c}` : "actualisé chaque semaine"}`, liveToday: "aujourd’hui",
   filtersAria: "Filtres de recherche", todayBtn: "Voir la glace libre aujourd'hui", lgType: "Type de séance", lgGender: "Genre", gAny: "Tous", gOpen: "Ouvert à tous", gWomen: "Femmes",
   lgLoc: "Lieu", byCity: "Par ville", nearMe: "Près de moi", cityLbl: "Ville", originLbl: "Ou tapez une ville ou un quartier", originPh: "Commencez à taper, p. ex. Vancouver", useLoc: "Utiliser ma position actuelle", locDeniedIOS: "La localisation est bloquée pour ce site. Sur iPhone, ouvrez Réglages → Confidentialité et sécurité → Service de localisation → Sites web Safari et choisissez Lorsque l’app est active. Puis, dans Safari, touchez le bouton aA (menu de la page) dans la barre d’adresse → Réglages du site web → Position → Demander, et réessayez. Ou tapez simplement un lieu ci-dessus.", locDenied: "La localisation est bloquée pour ce site. Autorisez-la dans les réglages du site de votre navigateur (l’icône à côté de l’adresse), puis réessayez. Ou tapez simplement un lieu ci-dessus.", locSlow: "Votre téléphone a mis trop de temps à vous localiser. Réessayez, ou tapez un lieu ci-dessus.",  locating: "Localisation…", locFail: "Position introuvable. Tapez plutôt un lieu ci-dessus.", myLoc: "votre position",
   within: "Dans un rayon de", radiusHint: "Distance à vol d'oiseau depuis votre position ou le lieu saisi.", lgDay: "Jour", lgTime: "Moment de la journée", from: "De", to: "À", reset: "Réinitialiser les filtres",
@@ -952,10 +957,10 @@ function typeChanged() { state.typeTouched = true; }
 function isoOf(d) { return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 function rowsFor(iso, useLoc, place, nowMin) {
   const date = parseISO(iso), dow = DAYS[date.getDay()];
-  if (state.favOnly) return DATA.filter(r => r.day === dow && isFav(r)).map(r => ({ ...r, iso, dateObj: date, dist: RINKS[r.rink] ? km([place[1], place[2]], RINKS[r.rink]) : null }))
+  if (state.favOnly) return DATA.filter(r => onDate(r, iso, dow) && isFav(r)).map(r => ({ ...r, iso, dateObj: date, dist: RINKS[r.rink] ? km([place[1], place[2]], RINKS[r.rink]) : null }))
     .filter(r => r.end > state.from && r.start < state.to && (iso !== isoToday() || r.end > nowMin)).map(r => (r.cancelled = cancelledOn(r.notes, date), r))
     .sort((a, b) => a.start - b.start || a.rink.localeCompare(b.rink));
-  let rows = DATA.filter(r => r.day === dow && state.types.has(r.type));
+  let rows = DATA.filter(r => onDate(r, iso, dow) && state.types.has(r.type));
   if (state.gender === "open") rows = rows.filter(r => r.gender === "all");
   else if (state.gender === "women") rows = rows.filter(r => r.gender === "women" || r.gender === "women+gd");
   rows = rows.map(r => ({ ...r, iso, dateObj: date, dist: RINKS[r.rink] ? km([place[1], place[2]], RINKS[r.rink]) : null }));
@@ -1369,6 +1374,9 @@ window.addEventListener("hashchange", () => openShared(location.hash.slice(1)));
 
 /* ---------- apply language ---------- */
 const UPDATED_RAW = ($("srctext").querySelector("b") || {}).textContent || "";
+function liveChecked() { if (!LIVE.checked || !LIVE.cover.length) return "";
+  const d = new Date(LIVE.checked), iso = LIVE.checked.slice(0, 10);
+  return iso === isoToday() ? `${t("liveToday")} ${fmt(d.getHours() * 60 + d.getMinutes())}` : dateFmt(parseISO(iso), { month: "short", day: "numeric" }); }
 function updatedDate() { const m = UPDATED_RAW.match(/([A-Z][a-z]{2}) (\d{1,2}), (\d{4})/); if (!m) return UPDATED_RAW;
   const d = new Date(+m[3], ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(m[1]), +m[2]);
   return LANG === "fr" ? dateFmt(d, { day: "numeric", month: "long", year: "numeric" }) : UPDATED_RAW; }
@@ -1379,7 +1387,7 @@ function applyLang() {
   document.querySelectorAll("[data-i18n-html]").forEach(el => el.innerHTML = t(el.dataset.i18nHtml));
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
   document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
-  $("srctext").innerHTML = t("updated", updatedDate());
+  $("srctext").innerHTML = t("updated", updatedDate(), liveChecked());
   { const m = UPDATED_RAW.match(/([A-Z][a-z]{2}) (\d{1,2}), (\d{4})/); if (m) { const age = (Date.now() - new Date(`${m[1]} ${m[2]}, ${m[3]}`)) / 864e5; $("srcdot").classList.toggle("live", age <= 9); $("srcdot").classList.toggle("old", age > 9); } }
   buildFooter();
   const other = LANG === "fr" ? ["en", "English", "EN"] : ["fr", "Français", "FR"];
